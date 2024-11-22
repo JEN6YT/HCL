@@ -2,7 +2,12 @@ from Model.rlearner import RLearner
 import numpy as np
 
 class linearHTE:
-    def fit_rlearner_lagrangian(self, X_tr, O_tr, C_tr, w_tr, lambd, m_model_specs = '', tau_model_specs = '', p_model_specs = ''): 
+    
+    def __init__(self):
+        self.rlearnermodel_O = RLearner() 
+        self.rlearnermodel_C = RLearner() 
+    
+    def fit_rlearner(self, X_tr, O_tr, C_tr, w_tr): 
         
         ## fit the r-learner model 
         ## model from paper: "Quasi-Oracle Estimation of Heterogeneous Treatment Effects" 
@@ -16,15 +21,15 @@ class linearHTE:
         ##   w_tr: treatment labels {1, 0}, vertical vector 
         ## return: fitted model object 
         
-        ## process values_tr, zero cost vector and w_tr into rlearner input 
-        if m_model_specs == '' and tau_model_specs == '' and p_model_specs == '': 
-            self.rlearnermodel_L = RLearner() 
-        else: 
-            self.rlearnermodel_L = RLearner(m_model_specs=m_model_specs, tau_model_specs=tau_model_specs, p_model_specs=p_model_specs)         
+        z = np.zeros([len(O_tr), 1]) 
         
-        y = np.concatenate((np.reshape(O_tr, [-1, 1]), np.reshape(C_tr, [-1, 1])), axis=1)
-        y = np.concatenate((y, np.reshape(w_tr, [-1, 1])), axis=1) 
+        o = np.concatenate((np.reshape(O_tr, [-1, 1]), z), axis=1) 
+        o = np.concatenate((o, np.reshape(w_tr, [-1, 1])), axis=1) 
         
-        self.rlearnermodel_L.fit(X_tr, y, lambd) 
+        c = np.concatenate((np.reshape(C_tr, [-1, 1]), z), axis=1)
+        c = np.concatenate((c, np.reshape(w_tr, [-1, 1])), axis=1) 
         
-        return self.rlearnermodel_L.tau_model
+        self.rlearnermodel_O.fit(X_tr, o) 
+        self.rlearnermodel_C.fit(X_tr, c) 
+        
+        return self.rlearnermodel_O.tau_model, self.rlearnermodel_C.tau_model

@@ -11,7 +11,7 @@ def preprocess_data(file_path):
     control_indicator_value = 0.0 
 
     # Data cleaning and filtering
-    D = D[D['iFertil'] > 1.5] 
+    D = D[D['iFertil'] >= 1.5] 
     D = D[D['dAge'] < 5] 
     D = D[D['iCitizen'] == 0] 
 

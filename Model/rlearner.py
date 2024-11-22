@@ -112,7 +112,7 @@ class RLearner:
         """
         
         self.lambd = lambd
-        y_ = y[:, 0] + self.lambd * y[:, 1] # negcost + lambda * value
+        y_ = y[:, 0] - self.lambd * y[:, 1] # cost - lambda * value
         w = y[:, -1] 
         
         p_hat = self._fit_predict_p_hat(X, w)
