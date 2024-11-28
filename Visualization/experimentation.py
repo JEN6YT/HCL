@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 class Experiment():
     
@@ -95,7 +96,7 @@ class Experiment():
                 selected_user_indices = TD[0:idx, 1] 
                 
                 model_target_users = np.zeros(w.shape) 
-                model_target_users[np.reshape(selected_user_indices, (idx,)).astype(np.int)] = 1 ## index 
+                model_target_users[np.reshape(selected_user_indices, (idx,)).astype(int)] = 1 ## index 
                 
                 treated_targeted_filter = np.logical_and(model_target_users, w) 
                 untreated_targeted_filter = np.logical_and(model_target_users, (w < 0.5)) 
@@ -229,24 +230,26 @@ class Experiment():
         
         ### [for Hong:] feel free to save this to file 
         ### let's define the interface between eng and vis 
-        # plt.plot(combined_series[:, 2], combined_series[:, 1], '-o'+color, markersize=12, linewidth=3)
+        plt.plot(combined_series[:, 2], combined_series[:, 1], '-o'+color, markersize=12, linewidth=3)
         ### [Todo:] define the file format
         ### ask Bhavya about this evaluator interface
         
         aucc = self.compute_aucc(ips, ios) 
-        # plt.xlabel('Incremental cost % of maximum')
-        # plt.ylabel('Incremental value % of maximum')
+        plt.xlabel('Incremental cost % of maximum')
+        plt.ylabel('Incremental value % of maximum')
 
-        # ax = plt.gca()
-        # type(ax)  # matplotlib.axes._subplots.AxesSubplot
-
+        ax = plt.gca()
+        type(ax)  # matplotlib.axes._subplots.AxesSubplot
+        
         # # manipulate to use percentage
-        # vals = ax.get_xticks()
-        # #ax.set_xticklabels(['{:,.1%}'.format(x) for x in vals])
-        # vals = ax.get_yticks()
-        # #ax.set_yticklabels(['{:,.1%}'.format(x) for x in vals])
-        # plt.grid(True)
-        return aucc, percs, cpits, cpitcohorts
+        vals = ax.get_xticks()
+        ax.set_xticklabels(['{:,.1%}'.format(x) for x in vals])
+        vals = ax.get_yticks()
+        ax.set_yticklabels(['{:,.1%}'.format(x) for x in vals])
+        plt.grid(True)
+        #plt.show()        
+        
+        return plt, aucc, percs, cpits, cpitcohorts
     
     
     def compute_filters_AtBt(self, w, model_target_users): 

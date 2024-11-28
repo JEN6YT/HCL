@@ -1,6 +1,5 @@
 import pandas as pd, numpy as np, matplotlib.pyplot as plt
 from Data.proc_us_census import preprocess_data 
-from utils.linearHTE import linearHTE
 from Model.rlearner import RLearner
 from Visualization.experimentation import Experiment 
 
@@ -29,18 +28,33 @@ Name: iFertil, dtype: int64
 
 nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = preprocess_data(hcl_path + 'data/USCensus1990.data.txt') 
 
-l_hte = linearHTE()
-value_tao, cost_tao = l_hte.fit_rlearner(nX_tr, values_tr, cost_tr, w_tr)
+rlearnermodel_O = RLearner()
+z = np.zeros([len(values_tr), 1]) 
+o = np.concatenate((np.reshape(values_tr, [-1, 1]), z), axis=1) 
+o = np.concatenate((o, np.reshape(w_tr, [-1, 1])), axis=1)
+rlearnermodel_O.fit(nX_tr, o) 
 
 # Prediction
-print(value_tao.predict(nX_va))
-print(cost_tao.predict(nX_va))
+pred_values_va = rlearnermodel_O.tau_model.predict(nX_va)
+print(pred_values_va)
 
 ex = Experiment()
 
 # Visualization
 # Matrix: effectiveness score | incremental value | incremental cost
 
-# aucc, percs, cpits, cpitcohorts = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
-    
-# )
+mplt, aucc, percs, cpits, cpitcohorts = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
+    pred_values_va,
+    values_va,
+    w_va,
+    cost_va,
+    'r',
+)
+
+
+
+
+# note x forwarding is not working for pyplot.show()
+mplt.savefig('test_aucc_plot.png')
+
+
