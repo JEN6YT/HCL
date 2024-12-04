@@ -6,7 +6,7 @@ from torch.optim import Adam
 class SimpleTCModelDNN(nn.Module):
     def __init__(self, input_dim, num_hidden):
         """
-        Initializes the Direct Ranking Model based on CPIT.
+        Initializes the Direct Ranking Model.
 
         Args:
         - input_dim: int, dimensionality of user context features (both treatment and control).
@@ -90,7 +90,6 @@ def optimize_model(model, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, lr=0.001):
     - o_tre: torch.Tensor, order labels for treatment group.
     - o_unt: torch.Tensor, order labels for control group.
     - lr: float, learning rate.
-    - save_path: path, path to save checkpoint
 
     Returns:
     - obj: torch.Tensor, the computed objective.

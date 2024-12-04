@@ -64,11 +64,6 @@ mplt, aucc, percs, cpits, cpitcohorts = ex.AUC_cpit_cost_curve_deciles_cohort_vi
 mplt.savefig('test_aucc_plot.png')
 
 
-# ----- DRM ----- # 
-
-from Model.drm import *
-
-drm_model = SimpleTCModelDNN(input_dim= 46, num_hidden= 92)
 
 # Split data into treated and untreated
 train_treat_index = np.where(w_tr==1)[0]
@@ -104,11 +99,18 @@ untreat_cost_va = torch.tensor(untreat_cost_va, dtype=torch.float32)
 treat_value_va = torch.tensor(treat_value_va, dtype=torch.float32)
 untreat_value_va = torch.tensor(untreat_value_va, dtype=torch.float32)
 
+
+# ----- DRM ----- # 
+
+from Model.drm import *
+
+drm_model = SimpleTCModelDNN(input_dim= 46, num_hidden= 92)
+
 h_tre_rnkscore, h_unt_rnkscore = drm_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
 
 # Training
 drm_epochs = 10
-save_path="model.pth"
+save_path="model_drm.pth"
 
 for epoch in range(drm_epochs):
     drm_obj = optimize_model(model=drm_model, 
@@ -123,7 +125,7 @@ for epoch in range(drm_epochs):
 torch.save(drm_model.state_dict(), save_path)
 print(f"Model saved to {save_path}")
 
-drm_model.load_state_dict(torch.load("model.pth"))
+drm_model.load_state_dict(torch.load("model_drm.pth"))
 drm_model.eval()
 
 # Prediction
@@ -141,3 +143,51 @@ mplt_drm, aucc_drm, percs_drm, cpits_drm, cpitcohorts_drm = ex.AUC_cpit_cost_cur
 )
 
 mplt_drm.savefig('test_aucc_plot_drm.png')
+
+
+# ----- Percentil Barrier Model ----- # 
+
+from Model.percentile_barrier import *
+
+p_quantile = torch.tensor(0.5, dtype=torch.float32)
+initial_temperature = torch.tensor(3, dtype=torch.float32)
+
+pb_model = percentile_barrier_model(input_dim=46, hidden_dim=138, initial_temp=initial_temperature, p_quantile=p_quantile)
+
+h_tre_rnkscore_pb, h_unt_rnkscore_pb  = pb_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
+
+# Training
+pb_epochs = 10
+save_path_pb="model_pb.pth"
+
+for epoch in range(pb_epochs):
+    pb_obj = optimize_model_pb(model=pb_model, 
+                                D_tre=treat_nX_tr, 
+                                D_unt=untreat_nX_tr, 
+                                c_tre=treat_cost_tr, 
+                                c_unt=untreat_cost_tr, 
+                                o_tre=treat_value_tr, 
+                                o_unt=untreat_value_tr)
+    print(f"Epoch {epoch + 1}/{pb_epochs}, Objective: {pb_obj.item()}")
+    
+torch.save(pb_model.state_dict(), save_path_pb)
+print(f"Model saved to {save_path_pb}")
+
+pb_model.load_state_dict(torch.load("model_pb.pth"))
+pb_model.eval()
+
+# Prediction
+h_tre_rnkscore_val_pb, h_unt_rnkscore_val_pb = pb_model(D_tre=treat_nX_va, D_unt=untreat_nX_va)
+combined_scores_pb = np.zeros_like(w_va, dtype=np.float32)
+combined_scores_pb[val_treat_index] = h_tre_rnkscore_val_pb.detach().numpy().squeeze()
+combined_scores_pb[val_untreat_index] = h_unt_rnkscore_val_pb.detach().numpy().squeeze()
+
+mplt_pb, aucc_pb, percs_pb, cpits_pb, cpitcohorts_pb = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
+    combined_scores_pb,
+    values_va,
+    w_va,
+    cost_va,
+    'y',
+)
+
+mplt_pb.savefig('test_aucc_plot_pb.png')
