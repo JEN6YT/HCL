@@ -64,6 +64,30 @@ mplt, aucc, percs, cpits, cpitcohorts = ex.AUC_cpit_cost_curve_deciles_cohort_vi
 mplt.savefig('test_aucc_plot.png')
 
 
+# ----- dual rlearner ----- # 
+from Model.dual_rlearner import DualityRLearner
+drl = DualityRLearner(B = 100)
+drl.fit(nX_tr, values_tr, cost_tr, w_tr)
+
+# Prediction
+_, pre_values_va_drl_tau_r, pre_values_va_drl_tau_c , pre_values_va_drl_lambda = drl.predict(nX_va)
+predicted_values_va_drl = pre_values_va_drl_tau_r - pre_values_va_drl_lambda * pre_values_va_drl_tau_c
+# print(pred_values_va)
+
+# Visualization
+# Matrix: effectiveness score | incremental value | incremental cost
+
+mplt_drl, aucc_drl, percs_drl, cpits_drl, cpitcohorts_drl = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
+    predicted_values_va_drl,
+    values_va,
+    w_va,
+    cost_va,
+    'c',
+)
+
+# note x forwarding is not working for pyplot.show()
+mplt.savefig('test_aucc_plot_drl.png')
+
 
 # Split data into treated and untreated
 train_treat_index = np.where(w_tr==1)[0]
