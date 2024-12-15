@@ -156,4 +156,3 @@ class RLearner:
         :return: array, shape (n_features, )
         """
         return self.tau_model.coef_
-    
