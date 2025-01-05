@@ -18,7 +18,7 @@ class percentile_barrier_model(nn.Module):
         super(percentile_barrier_model, self).__init__()
         self.hidden_dim = hidden_dim
         self.p_quantile = p_quantile
-        self.temperature = nn.Parameter(torch.tensor(initial_temp, dtype=torch.float64))
+        self.temperature = initial_temp
         
         if hidden_dim > 0:
             self.hidden_layer = nn.Linear(input_dim, hidden_dim)
@@ -54,32 +54,29 @@ def compute_objective_pb(D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, model):
     # Forward pass: compute rank scores
     h_tre_rnkscore, h_unt_rnkscore= model(D_tre, D_unt)
     
+    s_tre = F.softmax(h_tre_rnkscore.squeeze(), dim=0)
+    s_unt = F.softmax(h_unt_rnkscore.squeeze(), dim=0)
+    
     # Sort scores
-    h_tre_sorted, _ = torch.sort(h_tre_rnkscore, descending=True, dim=0)
-    h_unt_sorted, _ = torch.sort(h_unt_rnkscore, descending=True, dim=0)
+    h_tre_sorted, _ = torch.sort(s_tre, descending=True, dim=0)
+    h_unt_sorted, _ = torch.sort(s_unt, descending=True, dim=0)
     
     # Top-k selection
-    size_tre = D_tre.size(0)
-    size_unt = D_unt.size(0)
-    top_k_tre = int(torch.ceil(size_tre * model.p_quantile).item())
-    top_k_unt = int(torch.ceil(size_unt * model.p_quantile).item())
+    top_k_tre = int(torch.ceil(h_tre_sorted.size(0) * model.p_quantile).item())
+    top_k_unt = int(torch.ceil(h_unt_sorted.size(0) * model.p_quantile).item())
     
     intercept_tre = h_tre_sorted[top_k_tre - 1]
     intercept_unt = h_unt_sorted[top_k_unt - 1]
     
     # Apply sigmoid with temperature
-    h_tre = torch.sigmoid(model.temperature * (h_tre_rnkscore - intercept_tre))
-    h_unt = torch.sigmoid(model.temperature * (h_unt_rnkscore - intercept_unt))
-    
-    # Compute softmax weights
-    s_tre = torch.softmax(h_tre, dim=0)
-    s_unt = torch.softmax(h_unt, dim=0)
+    h_tre = torch.sigmoid(model.temperature * (s_tre - intercept_tre))
+    h_unt = torch.sigmoid(model.temperature * (s_unt - intercept_unt))
     
     # Compute weighted sums for treatment effects
-    dc_tre = torch.sum(s_tre * c_tre)
-    dc_unt = torch.sum(s_unt * c_unt)
-    do_tre = torch.sum(s_tre * o_tre)
-    do_unt = torch.sum(s_unt * o_unt)
+    dc_tre = torch.sum(s_tre * h_tre * c_tre)
+    dc_unt = torch.sum(s_unt * h_unt * c_unt)
+    do_tre = torch.sum(s_tre * h_tre * o_tre)
+    do_unt = torch.sum(s_unt * h_unt * o_unt)
     
     # Compute the objective
     obj = (dc_tre - dc_unt) / (do_tre - do_unt)  # Adding a small epsilon to avoid division by zero
@@ -87,7 +84,7 @@ def compute_objective_pb(D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, model):
     return obj
 
 
-def optimize_model_pb(model, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, lr=0.001):
+def optimize_model_pb(model, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, lr=0.001, epochs = 10):
     """
     Optimizes the model using the Adam optimizer.
 
@@ -105,13 +102,13 @@ def optimize_model_pb(model, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, lr=0.001)
     - obj: torch.Tensor, the computed objective.
     """
     optimizer = Adam(model.parameters(), lr=lr)
-
-    obj = compute_objective_pb(D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, model)
-
     optimizer.zero_grad()
-    (-obj).backward()  # Negative objective for maximization
-    optimizer.step()
-
+    
+    for epoch in range(epochs):
+        obj = compute_objective_pb(D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, model)
+        (-obj).backward()  # Negative objective for maximization
+        optimizer.step()
+        print(f"Epoch {epoch}/{epoch}, Objective: {obj.item()}")
     return obj
 
 """
