@@ -35,7 +35,6 @@ Name: iFertil, dtype: int64
 # nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = preprocess_data(hcl_path + 'data/USCensus1990.data.txt') 
 nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = preprocess_data("/Users/jenniferzhang/Desktop/Research with Will/USCensus1990.data.txt") 
 
-
 # ----- rlearner ----- # 
 rlearnermodel_O = RLearner()
 z = np.zeros([len(values_tr), 1]) 
@@ -62,31 +61,6 @@ mplt, aucc, percs, cpits, cpitcohorts = ex.AUC_cpit_cost_curve_deciles_cohort_vi
 
 # note x forwarding is not working for pyplot.show()
 # mplt.savefig('test_aucc_plot.png')
-
-
-# ----- dual rlearner ----- # 
-from Model.dual_rlearner import DualityRLearner
-drl = DualityRLearner(B = 100)
-drl.fit(nX_tr, values_tr, cost_tr, w_tr)
-
-# Prediction
-_, pre_values_va_drl_tau_r, pre_values_va_drl_tau_c , pre_values_va_drl_lambda = drl.predict(nX_va)
-predicted_values_va_drl = pre_values_va_drl_tau_r - pre_values_va_drl_lambda * pre_values_va_drl_tau_c
-# print(pred_values_va)
-
-# Visualization
-# Matrix: effectiveness score | incremental value | incremental cost
-
-mplt_drl, aucc_drl, percs_drl, cpits_drl, cpitcohorts_drl = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
-    predicted_values_va_drl,
-    values_va,
-    w_va,
-    cost_va,
-    'c',
-)
-
-# note x forwarding is not working for pyplot.show()
-mplt.savefig('test_aucc_plot_drl.png')
 
 
 # Split data into treated and untreated
@@ -212,4 +186,28 @@ mplt_pb, aucc_pb, percs_pb, cpits_pb, cpitcohorts_pb = ex.AUC_cpit_cost_curve_de
     'y',
 )
 
-mplt_pb.savefig('test_aucc_plot_pb.png')
+# mplt_pb.savefig('test_aucc_plot_pb.png')
+
+# ----- dual rlearner ----- # 
+from Model.dual_rlearner import DualityRLearner
+drl = DualityRLearner(B = 1000)
+drl.fit(nX_tr, np.reshape(values_tr, [-1, 1]), np.reshape(cost_tr, [-1, 1]),  np.reshape(w_tr, [-1, 1]))
+
+# Prediction
+_, pre_values_va_drl_tau_r, pre_values_va_drl_tau_c , pre_values_va_drl_lambda = drl.predict(nX_va)
+predicted_values_va_drl = - pre_values_va_drl_tau_r + pre_values_va_drl_lambda * pre_values_va_drl_tau_c
+# print(pred_values_va)
+
+# Visualization
+# Matrix: effectiveness score | incremental value | incremental cost
+
+mplt_drl, aucc_drl, percs_drl, cpits_drl, cpitcohorts_drl = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
+    predicted_values_va_drl,
+    values_va,
+    w_va,
+    cost_va,
+    'c',
+)
+
+# note x forwarding is not working for pyplot.show()
+mplt_drl.savefig('test_aucc_plot_drl.png')
