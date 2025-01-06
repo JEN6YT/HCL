@@ -149,7 +149,7 @@ from Model.percentile_barrier import *
 p_quantile = torch.tensor(0.5, dtype=torch.float32)
 initial_temperature = torch.tensor(3, dtype=torch.float32)
 
-pb_model = percentile_barrier_model(input_dim=46, hidden_dim=138, initial_temp=initial_temperature, p_quantile=p_quantile)
+pb_model = percentile_barrier_model(input_dim=46, hidden_dim=92, initial_temp=initial_temperature, p_quantile=p_quantile)
 
 h_tre_rnkscore_pb, h_unt_rnkscore_pb  = pb_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
 
@@ -210,4 +210,15 @@ mplt_drl, aucc_drl, percs_drl, cpits_drl, cpitcohorts_drl = ex.AUC_cpit_cost_cur
 )
 
 # note x forwarding is not working for pyplot.show()
+
+mplt_drl.legend(
+    labels=[
+        "R-Learner",
+        "DRM (Deep Rank Model)",
+        "Percentile Barrier Model",
+        "Duality R-Learner"
+    ],
+    loc="upper right",  # Specify location of legend
+    fontsize=10
+)
 mplt_drl.savefig('test_aucc_plot_drl.png')
