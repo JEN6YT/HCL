@@ -61,7 +61,7 @@ mplt, aucc, percs, cpits, cpitcohorts = ex.AUC_cpit_cost_curve_deciles_cohort_vi
 )
 
 # note x forwarding is not working for pyplot.show()
-mplt.savefig('test_aucc_plot.png')
+# mplt.savefig('test_aucc_plot.png')
 
 
 # ----- dual rlearner ----- # 
@@ -133,19 +133,18 @@ drm_model = SimpleTCModelDNN(input_dim= 46, num_hidden= 92)
 h_tre_rnkscore, h_unt_rnkscore = drm_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
 
 # Training
-drm_epochs = 10
+drm_epochs = 100
 save_path="model_drm.pth"
 
-for epoch in range(drm_epochs):
-    drm_obj = optimize_model(model=drm_model, 
-                            D_tre=treat_nX_tr, 
-                            D_unt=untreat_nX_tr, 
-                            c_tre=treat_cost_tr, 
-                            c_unt=untreat_cost_tr, 
-                            o_tre=treat_value_tr, 
-                            o_unt=untreat_value_tr)
-    print(f"Epoch {epoch + 1}/{drm_epochs}, Objective: {drm_obj.item()}")
-    
+drm_obj = optimize_model(model=drm_model, 
+                        D_tre=treat_nX_tr, 
+                        D_unt=untreat_nX_tr, 
+                        c_tre=treat_cost_tr, 
+                        c_unt=untreat_cost_tr, 
+                        o_tre=treat_value_tr, 
+                        o_unt=untreat_value_tr,
+                        epochs=drm_epochs)
+
 torch.save(drm_model.state_dict(), save_path)
 print(f"Model saved to {save_path}")
 
@@ -166,7 +165,7 @@ mplt_drm, aucc_drm, percs_drm, cpits_drm, cpitcohorts_drm = ex.AUC_cpit_cost_cur
     'b',
 )
 
-mplt_drm.savefig('test_aucc_plot_drm.png')
+# mplt_drm.savefig('test_aucc_plot_drm.png')
 
 
 # ----- Percentil Barrier Model ----- # 
@@ -181,18 +180,17 @@ pb_model = percentile_barrier_model(input_dim=46, hidden_dim=138, initial_temp=i
 h_tre_rnkscore_pb, h_unt_rnkscore_pb  = pb_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
 
 # Training
-pb_epochs = 10
+pb_epochs = 150
 save_path_pb="model_pb.pth"
 
-for epoch in range(pb_epochs):
-    pb_obj = optimize_model_pb(model=pb_model, 
-                                D_tre=treat_nX_tr, 
-                                D_unt=untreat_nX_tr, 
-                                c_tre=treat_cost_tr, 
-                                c_unt=untreat_cost_tr, 
-                                o_tre=treat_value_tr, 
-                                o_unt=untreat_value_tr)
-    print(f"Epoch {epoch + 1}/{pb_epochs}, Objective: {pb_obj.item()}")
+pb_obj = optimize_model_pb(model=pb_model, 
+                            D_tre=treat_nX_tr, 
+                            D_unt=untreat_nX_tr, 
+                            c_tre=treat_cost_tr, 
+                            c_unt=untreat_cost_tr, 
+                            o_tre=treat_value_tr, 
+                            o_unt=untreat_value_tr,
+                            epochs=pb_epochs)
     
 torch.save(pb_model.state_dict(), save_path_pb)
 print(f"Model saved to {save_path_pb}")

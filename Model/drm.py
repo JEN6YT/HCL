@@ -70,14 +70,14 @@ def compute_objective(h_tre_rnkscore, h_unt_rnkscore, c_tre, c_unt, o_tre, o_unt
     do_tre = torch.sum(s_tre * o_tre)
     do_unt = torch.sum(s_unt * o_unt)
 
-    obj = (dc_tre - dc_unt) / (do_tre - do_unt)
+    # obj = (dc_tre - dc_unt) / (do_tre - do_unt)
 
     # Optional differentiable version:
-    # obj = torch.log(F.relu(dc_tre - dc_unt)) - torch.log(F.relu(do_tre - do_unt))
+    obj = - F.relu(abs(dc_tre - dc_unt)) / F.relu(abs(do_tre - do_unt))
     return obj
 
 
-def optimize_model(model, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, lr=0.001):
+def optimize_model(model, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, lr=0.001, epochs = 10):
     """
     Optimizes the model using the Adam optimizer.
 
@@ -95,14 +95,16 @@ def optimize_model(model, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, lr=0.001):
     - obj: torch.Tensor, the computed objective.
     """
     optimizer = Adam(model.parameters(), lr=lr)
-
-    h_tre_rnkscore, h_unt_rnkscore = model(D_tre, D_unt)
-    obj = compute_objective(h_tre_rnkscore, h_unt_rnkscore, c_tre, c_unt, o_tre, o_unt)
-
     optimizer.zero_grad()
-    (-obj).backward()  # Negative objective for maximization
-    optimizer.step()
+    
+    for epoch in range(epochs):
+        h_tre_rnkscore, h_unt_rnkscore = model(D_tre, D_unt)
+        obj = compute_objective(h_tre_rnkscore, h_unt_rnkscore, c_tre, c_unt, o_tre, o_unt)
 
+        (-obj).backward()  # Negative objective for maximization
+        optimizer.step()
+        
+        print(f"Epoch {epoch}/{epoch}, Objective: {obj.item()}")
     return obj
 
 
