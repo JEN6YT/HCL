@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 class Experiment():
     
-        ## general experimentation class 
+    ## general experimentation class 
     ## for promotion targeting model 
     def compute_aucc(self, ics, ios): 
         assert(len(ics) == len(ios)) 
