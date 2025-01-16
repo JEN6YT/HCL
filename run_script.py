@@ -28,13 +28,15 @@ hcl_path = "/home/ubuntu/code/HCL/"
 Name: iFertil, dtype: int64
 """
 
+ex = Experiment()
+
 # nX: user features
 # w: T (whether user is treated or not)
 # values: dIncome1 (reward)
 # cost: iFertil (positive cost)
 
-# nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = preprocess_data(hcl_path + 'data/USCensus1990.data.txt') 
-nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = process_data("/Users/jenniferzhang/Desktop/Research with Will/covtype.csv") 
+nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = preprocess_data('/Users/jenniferzhang/Desktop/Research with Will/USCensus1990.data.txt') 
+# nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = process_data("/Users/jenniferzhang/Desktop/Research with Will/covtype.csv") 
 
 # ----- rlearner ----- # 
 rlearnermodel_O = RLearner()
@@ -47,8 +49,6 @@ rlearnermodel_O.fit(nX_tr, o)
 pred_values_va = rlearnermodel_O.tau_model.predict(nX_va)
 # print(pred_values_va)
 
-ex = Experiment()
-
 # Visualization
 # Matrix: effectiveness score | incremental value | incremental cost
 
@@ -60,6 +60,7 @@ mplt, aucc, percs, cpits, cpitcohorts = ex.AUC_cpit_cost_curve_deciles_cohort_vi
     'r',
 )
 
+print("rlearner aucc: ", aucc)
 # note x forwarding is not working for pyplot.show()
 # mplt.savefig('test_aucc_plot.png')
 
@@ -108,7 +109,7 @@ drm_model = SimpleTCModelDNN(input_dim= 51, num_hidden= 92)
 h_tre_rnkscore, h_unt_rnkscore = drm_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
 
 # Training
-drm_epochs = 100
+drm_epochs = 1500
 save_path="model_drm.pth"
 
 drm_obj = optimize_model(model=drm_model, 
@@ -140,6 +141,7 @@ mplt_drm, aucc_drm, percs_drm, cpits_drm, cpitcohorts_drm = ex.AUC_cpit_cost_cur
     'b',
 )
 
+print("drm aucc: ", aucc_drm)
 # mplt_drm.savefig('test_aucc_plot_drm.png')
 
 
@@ -155,7 +157,7 @@ pb_model = percentile_barrier_model(input_dim=51, hidden_dim=92, initial_temp=in
 h_tre_rnkscore_pb, h_unt_rnkscore_pb  = pb_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
 
 # Training
-pb_epochs = 150
+pb_epochs = 1500
 save_path_pb="model_pb.pth"
 
 pb_obj = optimize_model_pb(model=pb_model, 
@@ -186,40 +188,66 @@ mplt_pb, aucc_pb, percs_pb, cpits_pb, cpitcohorts_pb = ex.AUC_cpit_cost_curve_de
     cost_va,
     'y',
 )
+print("percentile barrier aucc: ", aucc_pb)
 
 # mplt_pb.savefig('test_aucc_plot_pb.png')
 
 # ----- dual rlearner ----- # 
-from Model.dual_rlearner import DualityRLearner
-drl = DualityRLearner(B = 1000)
-drl.fit(nX_tr, np.reshape(values_tr, [-1, 1]), np.reshape(cost_tr, [-1, 1]),  np.reshape(w_tr, [-1, 1]))
+from Model.dual_rlearner_new import DualRLearner
+drl = DualRLearner()
 
-# Prediction
-_, pre_values_va_drl_tau_r, pre_values_va_drl_tau_c , pre_values_va_drl_lambda = drl.predict(nX_va)
-predicted_values_va_drl = - pre_values_va_drl_tau_r + pre_values_va_drl_lambda * pre_values_va_drl_tau_c
-# print(pred_values_va)
+"""
+# Selecting best lambda process
 
-# Visualization
-# Matrix: effectiveness score | incremental value | incremental cost
+lambda_list = [0.001, 0.005, 0.01, 0.05]
+colors = ['b', 'c', 'g', 'y']
+result = drl.select_lambda(nX_tr, np.reshape(values_tr, [-1, 1]), np.reshape(cost_tr, [-1, 1]),  np.reshape(w_tr, [-1, 1]), lambda_list, nX_va)
+labels = []
+
+for i in range(len(result)):
+    mplt_drl, aucc_drl, percs_drl, cpits_drl, cpitcohorts_drl = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
+        result[i],
+        values_va,
+        w_va,
+        cost_va,
+        colors[i],
+    )
+    labels.append('lamd = ' + str(lambda_list[i]))
+
+mplt_drl.legend(
+    labels=labels,
+    loc="upper right",  # Specify location of legend
+    fontsize=10
+)
+# mplt_drl.savefig('selecting_lambda_dualrlearner_us.png')
+"""
+
+
+lmda = 0.05
+
+fitting_drl = drl.fit_dual(nX_tr, np.reshape(values_tr, [-1, 1]), np.reshape(cost_tr, [-1, 1]),  np.reshape(w_tr, [-1, 1]), lmda)
+predicted_drl = fitting_drl.predict(nX_va)
 
 mplt_drl, aucc_drl, percs_drl, cpits_drl, cpitcohorts_drl = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
-    predicted_values_va_drl,
+    predicted_drl,
     values_va,
     w_va,
     cost_va,
     'c',
 )
 
-# note x forwarding is not working for pyplot.show()
+mplt_drl.savefig('dual_r.png')
+
+print("duality aucc: ", aucc_drl)
 
 mplt_drl.legend(
     labels=[
         "R-Learner",
-        "DRM (Deep Rank Model)",
+        "DRM (Direct Ranking Model)",
         "Percentile Barrier Model",
         "Duality R-Learner"
     ],
     loc="upper right",  # Specify location of legend
-    fontsize=10
+    fontsize=8
 )
-mplt_drl.savefig('test_aucc_plot_drl_covtype.png')
+mplt_drl.savefig('covtype_graphs.png')
