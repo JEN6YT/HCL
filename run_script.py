@@ -35,8 +35,8 @@ ex = Experiment()
 # values: dIncome1 (reward)
 # cost: iFertil (positive cost)
 
-nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = preprocess_data('/Users/jenniferzhang/Desktop/Research with Will/USCensus1990.data.txt') 
-# nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = process_data("/Users/jenniferzhang/Desktop/Research with Will/covtype.csv") 
+# nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = preprocess_data('/Users/jenniferzhang/Desktop/Research with Will/USCensus1990.data.txt') 
+nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = process_data("/Users/jenniferzhang/Desktop/Research with Will/covtype.csv") 
 
 # ----- rlearner ----- # 
 rlearnermodel_O = RLearner()
@@ -225,7 +225,10 @@ mplt_drl.legend(
 
 lmda = 0.05
 
+# for covertype
 fitting_drl = drl.fit_dual(nX_tr, np.reshape(values_tr, [-1, 1]), np.reshape(cost_tr, [-1, 1]),  np.reshape(w_tr, [-1, 1]), lmda)
+# for us census
+# fitting_drl = drl.fit_dual(nX_tr, np.reshape(values_tr, [-1, 1]), - np.reshape(cost_tr, [-1, 1]),  np.reshape(w_tr, [-1, 1]), lmda)
 predicted_drl = fitting_drl.predict(nX_va)
 
 mplt_drl, aucc_drl, percs_drl, cpits_drl, cpitcohorts_drl = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
