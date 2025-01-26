@@ -84,7 +84,7 @@ def compute_objective_pb_anneal(D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, model)
     return obj
 
 
-def optimize_model_pb_anneal(model, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, lr=0.001, epochs = 10, temp_increment = 0.01, anneal_steps = 100):
+def optimize_model_pb_anneal(model, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, lr=0.001, epochs = 10, temp_increment = 0.01, anneal_steps = 10):
     """
     Optimizes the model using the Adam optimizer.
 

@@ -4,6 +4,7 @@ from Data.proc_covtype import process_data
 from Model.rlearner import RLearner
 from Visualization.experimentation import Experiment 
 import torch
+import torch.nn.functional as F
 
 hcl_path = "/home/ubuntu/code/HCL/"
 
@@ -35,8 +36,8 @@ ex = Experiment()
 # values: dIncome1 (reward)
 # cost: iFertil (positive cost)
 
-nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = preprocess_data('/Users/jenniferzhang/Desktop/Research with Will/USCensus1990.data.txt') 
-# nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = process_data("/Users/jenniferzhang/Desktop/Research with Will/covtype.csv") 
+# nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = preprocess_data('/Users/jenniferzhang/Desktop/Research with Will/USCensus1990.data.txt') 
+nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = process_data("/Users/jenniferzhang/Desktop/Research with Will/covtype.csv") 
 
 # ----- rlearner ----- # 
 rlearnermodel_O = RLearner()
@@ -61,8 +62,8 @@ mplt, aucc, percs, cpits, cpitcohorts = ex.AUC_cpit_cost_curve_deciles_cohort_vi
 )
 
 print("rlearner aucc: ", aucc)
-# # note x forwarding is not working for pyplot.show()
-# # mplt.savefig('test_aucc_plot.png')
+# note x forwarding is not working for pyplot.show()
+# mplt.savefig('test_aucc_plot.png')
 
 
 # Split data into treated and untreated
@@ -104,7 +105,7 @@ untreat_value_va = torch.tensor(untreat_value_va, dtype=torch.float32)
 
 from Model.drm import *
 
-drm_model = SimpleTCModelDNN(input_dim= 46, num_hidden= 92)
+drm_model = SimpleTCModelDNN(input_dim= 51, num_hidden= 92)
 
 h_tre_rnkscore, h_unt_rnkscore = drm_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
 
@@ -152,7 +153,7 @@ from Model.percentile_barrier import *
 p_quantile = torch.tensor(0.5, dtype=torch.float32)
 initial_temperature = torch.tensor(3, dtype=torch.float32)
 
-pb_model = percentile_barrier_model(input_dim=46, hidden_dim=92, initial_temp=initial_temperature, p_quantile=p_quantile)
+pb_model = percentile_barrier_model(input_dim=51, hidden_dim=92, initial_temp=initial_temperature, p_quantile=p_quantile)
 
 h_tre_rnkscore_pb, h_unt_rnkscore_pb  = pb_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
 
@@ -199,12 +200,12 @@ from Model.percentile_barrier_annealing import *
 p_quantile = torch.tensor(0.4, dtype=torch.float32)
 initial_temperature = torch.tensor(0.5, dtype=torch.float32)
 
-pb_model = percentile_barrier_model_anneal(input_dim=46, hidden_dim=92, initial_temp=initial_temperature, p_quantile=p_quantile)
+pb_model = percentile_barrier_model_anneal(input_dim=51, hidden_dim=92, initial_temp=initial_temperature, p_quantile=p_quantile)
 
 h_tre_rnkscore_pb, h_unt_rnkscore_pb  = pb_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
 
 # Training
-pb_epochs = 10000
+pb_epochs = 5000
 save_path_pb="model_pb.pth"
 
 pb_obj = optimize_model_pb_anneal(model=pb_model, 
@@ -214,7 +215,9 @@ pb_obj = optimize_model_pb_anneal(model=pb_model,
                                 c_unt=untreat_cost_tr, 
                                 o_tre=treat_value_tr, 
                                 o_unt=untreat_value_tr,
-                                epochs=pb_epochs)
+                                epochs=pb_epochs,
+                                temp_increment=0.01,
+                                anneal_steps=10)
     
 torch.save(pb_model.state_dict(), save_path_pb)
 print(f"Model saved to {save_path_pb}")
@@ -239,17 +242,31 @@ print("percentile barrier aucc: ", aucc_pb)
 
 
 # ----- Causal Tree ----- # 
-file_path_o = "results_uscensus/causal_forest_grf_test_set_results_O_numtrees50_alpha0.2_min_node_size3_sample_fraction0.5.csv"
-# file_path_o = "results_covtype/causal_forest_grf_test_set_results_O_numtrees60_alpha0.2_min_node_size4_sample_fraction0.5.csv"
+# file_path_o = "results_uscensus/causal_forest_grf_test_set_results_O_numtrees50_alpha0.2_min_node_size3_sample_fraction0.5.csv"
+file_path_o = "results_covtype/causal_forest_grf_test_set_results_O_numtrees60_alpha0.2_min_node_size4_sample_fraction0.5.csv"
 predicted_o = pd.read_csv(file_path_o)
 predicted_o = predicted_o.transpose()
 # Remove the header row by resetting the index and dropping the first row
 predicted_o = predicted_o.iloc[1:].reset_index(drop=True)
+predicted_o = predicted_o.to_numpy()
+predicted_o = predicted_o.astype(float)
 # Flatten the DataFrame to convert it into a Series
 # predicted_o = predicted_o.squeeze()
 
+file_path_c = "results_covtype/causal_forest_grf_test_set_results_C_numtrees60_alpha0.2_min_node_size4_sample_fraction0.5.csv"
+# file_path_c = "results_uscensus/causal_forest_grf_test_set_results_C_numtrees50_alpha0.2_min_node_size3_sample_fraction0.5.csv"
+predicted_c = pd.read_csv(file_path_c)
+predicted_c = predicted_c.transpose()
+predicted_c = predicted_c.iloc[1:].reset_index(drop=True)
+predicted_c = predicted_c.to_numpy()
+predicted_c = predicted_c.astype(float)
+# print(predicted_c)
+# print(predicted_c.dtype)
+
+
+
 mplt_ct, aucc_ct, percs_ct, cpits_ct, cpitcohorts_ct = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
-    predicted_o,
+    F.relu(torch.from_numpy(predicted_o))/(F.relu(torch.from_numpy(predicted_c))+1e-5),
     values_va,
     w_va,
     cost_va,
@@ -259,10 +276,10 @@ print("causal tree aucc: ", aucc_ct)
 
 # mplt_ct.savefig('test_ct.png')
 
-file_path_c = "results_uscensus/causal_forest_grf_test_set_results_C_numtrees50_alpha0.2_min_node_size3_sample_fraction0.5.csv"
-predicted_c = pd.read_csv(file_path_c)
-predicted_c = predicted_c.transpose()
-predicted_c = predicted_c.reset_index()
+# file_path_c = "results_uscensus/causal_forest_grf_test_set_results_C_numtrees50_alpha0.2_min_node_size3_sample_fraction0.5.csv"
+# predicted_c = pd.read_csv(file_path_c)
+# predicted_c = predicted_c.transpose()
+# predicted_c = predicted_c.reset_index()
 
 
 # ----- dual rlearner ----- # 
@@ -313,19 +330,42 @@ mplt_drl, aucc_drl, percs_drl, cpits_drl, cpitcohorts_drl = ex.AUC_cpit_cost_cur
 )
 
 # mplt_drl.savefig('dual_r.png')
-
 print("duality aucc: ", aucc_drl)
 
-mplt_drl.legend(
+
+# ----- rlearner 2layer mlp ----- # 
+from Model.rlearner_mlp import mlprlearner
+
+rlearnermodel = mlprlearner()
+z = np.zeros([len(values_tr), 1])
+o = np.concatenate((np.reshape(values_tr, [-1, 1]), z), axis=1) 
+o = np.concatenate((o, np.reshape(w_tr, [-1, 1])), axis=1)
+rlearnermodel.fit(nX_tr, o)
+predicted_rlearner_mlp = rlearnermodel.predict(nX_va)
+
+mplt_mlp, aucc_mlp, percs_mlp, cpits_mlp, cpitcohorts_mlp = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
+    predicted_rlearner_mlp,
+    values_va,
+    w_va,
+    cost_va,
+    'magenta',
+)
+
+# mplt_drl.savefig('rlearner_mlp.png')
+print("rlearner mlp aucc: ", aucc_drl)
+
+
+mplt_mlp.legend(
     labels=[
         "R-Learner",
         "DRM (Direct Ranking Model)",
         "Percentile Barrier Model",
         "Percentile Barrier Model Annealing",
         "Causal Tree",
-        "Duality R-Learner"
+        "Duality R-Learner",
+        "R-Learner 2 Layer MLP"
     ],
     loc="upper left",  # Specify location of legend
     fontsize=8
 )
-mplt_drl.savefig('us_census_graphs_new.png')
+mplt_mlp.savefig('covtype_graphs.png')
