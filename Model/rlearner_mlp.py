@@ -1,21 +1,14 @@
 import numpy as np
-from sklearn import linear_model
 from sklearn.model_selection import KFold
-from sklearn.ensemble import RandomForestRegressor 
+from sklearn.neural_network import MLPRegressor
 
-class RLearner:
-    """
-    R-learner, estimate the heterogeneous causal effect
-    replicate paper: https://arxiv.org/pdf/1712.04912.pdf
-    Github R reference: https://github.com/xnie/rlearner
-    """    
-    
+class mlprlearner:
+
     def __init__( 
             self, 
-            p_model_specs=None, 
-            # ToDo: change the default to Ridge regression as OLS will have explosive coefficients
-            m_model_specs={'model': linear_model.Ridge, 'params': {'alpha': 1.0}},
-            tau_model_specs={'model': linear_model.Ridge, 'params': {'alpha': 1.0}},
+            p_model_specs={'model': MLPRegressor, 'params': {'hidden_layer_sizes': (100, 1), 'activation': 'tanh', 'max_iter': 1000}},
+            m_model_specs={'model': MLPRegressor, 'params': {'hidden_layer_sizes': (100, 1), 'activation': 'tanh', 'max_iter': 1000}},
+            tau_model_specs={'model': MLPRegressor, 'params': {'hidden_layer_sizes': (100, 1), 'activation': 'tanh', 'max_iter': 1000}},
             shadow=None,
             k_fold=5,
     ):
@@ -25,7 +18,6 @@ class RLearner:
         propensity of the sample in treatment, if None, assume perfect randomized experiment and will use a constant p
         calculated from is_treatment from y
         :param m_model_specs: specification for the model of E[Y|X], example args
-        {'model': linear_model.Ridge, 'params': {'alpha': 1.0}}
         :param tau_model_specs: specification for the model of E[Y(1) - Y(0)|X]
         :param shadow: shadow scale for objective cost - shadow * value
         :param k_fold: number of folds to use k-fold to predict p_hat and m_hat
@@ -35,13 +27,13 @@ class RLearner:
         self.m_model_specs = m_model_specs
         self.tau_model_specs = tau_model_specs
         
-        # self.p_model = None
-        # self.m_model = None
+        self.p_model = None
+        self.m_model = None
         self.tau_model = None
         
         self.shadow = shadow
         self.k_fold = k_fold
-    
+
     def _fit_predict_p_hat(self, X, w): 
         """ 
         Given X and T, fix a model to predict T (e) given X
@@ -58,7 +50,7 @@ class RLearner:
         
         p_hat = np.zeros_like(w)
         
-        # initialize m model 
+        # initialize p model 
         p_model = self.p_model_specs['model'](**self.p_model_specs['params']) 
         
         for fit_idx, pred_idx in kf.split(X):
@@ -82,8 +74,6 @@ class RLearner:
         :param m: cost - shadow * value
         :return: a numpy array of predicted m_hat, same shape as m
         """
-        # ToDo: add hyper-param tuning for m_hat model here
-        
         kf = KFold(n_splits=self.k_fold)
         
         m_hat = np.zeros_like(m)
