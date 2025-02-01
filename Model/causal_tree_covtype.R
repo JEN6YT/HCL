@@ -2,10 +2,10 @@ library(grf)
 library(dplyr) 
 library(data.table) 
 
-num_trees = 60
-p_alpha = 0.2 #0.05 
-p_min_node_size = 10 #10 
-p_sample_fraction = 0.5 #0.8 
+num_trees = 60 # 50
+p_alpha = 0.2 #0.2 
+p_min_node_size = 4 #3
+p_sample_fraction = 0.5 #0.5
 num_features = 51 
 
 print('reading data from csv') 

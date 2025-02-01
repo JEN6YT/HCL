@@ -36,8 +36,8 @@ ex = Experiment()
 # values: dIncome1 (reward)
 # cost: iFertil (positive cost)
 
-# nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = preprocess_data('/Users/jenniferzhang/Desktop/Research with Will/USCensus1990.data.txt') 
-nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = process_data("/Users/jenniferzhang/Desktop/Research with Will/covtype.csv") 
+nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = preprocess_data('/Users/jenniferzhang/Desktop/Research with Will/USCensus1990.data.txt') 
+# nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = process_data("/Users/jenniferzhang/Desktop/Research with Will/covtype.csv") 
 
 # ----- rlearner ----- # 
 rlearnermodel_O = RLearner()
@@ -105,7 +105,7 @@ untreat_value_va = torch.tensor(untreat_value_va, dtype=torch.float32)
 
 from Model.drm import *
 
-drm_model = SimpleTCModelDNN(input_dim= 51, num_hidden= 92)
+drm_model = SimpleTCModelDNN(input_dim= 46, num_hidden= 92)
 
 h_tre_rnkscore, h_unt_rnkscore = drm_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
 
@@ -153,7 +153,7 @@ from Model.percentile_barrier import *
 p_quantile = torch.tensor(0.5, dtype=torch.float32)
 initial_temperature = torch.tensor(3, dtype=torch.float32)
 
-pb_model = percentile_barrier_model(input_dim=51, hidden_dim=92, initial_temp=initial_temperature, p_quantile=p_quantile)
+pb_model = percentile_barrier_model(input_dim=46, hidden_dim=92, initial_temp=initial_temperature, p_quantile=p_quantile)
 
 h_tre_rnkscore_pb, h_unt_rnkscore_pb  = pb_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
 
@@ -193,57 +193,57 @@ print("percentile barrier aucc: ", aucc_pb)
 
 # mplt_pb.savefig('test_aucc_plot_pb.png')
 
-# ----- Percentil Barrier Model ----- # 
+# # ----- Percentil Barrier Model ----- # 
 
-from Model.percentile_barrier_annealing import *
+# from Model.percentile_barrier_annealing import *
 
-p_quantile = torch.tensor(0.4, dtype=torch.float32)
-initial_temperature = torch.tensor(0.5, dtype=torch.float32)
+# p_quantile = torch.tensor(0.4, dtype=torch.float32)
+# initial_temperature = torch.tensor(0.5, dtype=torch.float32)
 
-pb_model = percentile_barrier_model_anneal(input_dim=51, hidden_dim=92, initial_temp=initial_temperature, p_quantile=p_quantile)
+# pb_model = percentile_barrier_model_anneal(input_dim=51, hidden_dim=92, initial_temp=initial_temperature, p_quantile=p_quantile)
 
-h_tre_rnkscore_pb, h_unt_rnkscore_pb  = pb_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
+# h_tre_rnkscore_pb, h_unt_rnkscore_pb  = pb_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
 
-# Training
-pb_epochs = 5000
-save_path_pb="model_pb.pth"
+# # Training
+# pb_epochs = 5000
+# save_path_pb="model_pb.pth"
 
-pb_obj = optimize_model_pb_anneal(model=pb_model, 
-                                D_tre=treat_nX_tr, 
-                                D_unt=untreat_nX_tr, 
-                                c_tre=treat_cost_tr, 
-                                c_unt=untreat_cost_tr, 
-                                o_tre=treat_value_tr, 
-                                o_unt=untreat_value_tr,
-                                epochs=pb_epochs,
-                                temp_increment=0.01,
-                                anneal_steps=10)
+# pb_obj = optimize_model_pb_anneal(model=pb_model, 
+#                                 D_tre=treat_nX_tr, 
+#                                 D_unt=untreat_nX_tr, 
+#                                 c_tre=treat_cost_tr, 
+#                                 c_unt=untreat_cost_tr, 
+#                                 o_tre=treat_value_tr, 
+#                                 o_unt=untreat_value_tr,
+#                                 epochs=pb_epochs,
+#                                 temp_increment=0.01,
+#                                 anneal_steps=10)
     
-torch.save(pb_model.state_dict(), save_path_pb)
-print(f"Model saved to {save_path_pb}")
+# torch.save(pb_model.state_dict(), save_path_pb)
+# print(f"Model saved to {save_path_pb}")
 
-pb_model.load_state_dict(torch.load("model_pb.pth"))
-pb_model.eval()
+# pb_model.load_state_dict(torch.load("model_pb.pth"))
+# pb_model.eval()
 
-# Prediction
-h_tre_rnkscore_val_pb, h_unt_rnkscore_val_pb = pb_model(D_tre=treat_nX_va, D_unt=untreat_nX_va)
-combined_scores_pb = np.zeros_like(w_va, dtype=np.float32)
-combined_scores_pb[val_treat_index] = h_tre_rnkscore_val_pb.detach().numpy().squeeze()
-combined_scores_pb[val_untreat_index] = h_unt_rnkscore_val_pb.detach().numpy().squeeze()
+# # Prediction
+# h_tre_rnkscore_val_pb, h_unt_rnkscore_val_pb = pb_model(D_tre=treat_nX_va, D_unt=untreat_nX_va)
+# combined_scores_pb = np.zeros_like(w_va, dtype=np.float32)
+# combined_scores_pb[val_treat_index] = h_tre_rnkscore_val_pb.detach().numpy().squeeze()
+# combined_scores_pb[val_untreat_index] = h_unt_rnkscore_val_pb.detach().numpy().squeeze()
 
-mplt_pb, aucc_pb, percs_pb, cpits_pb, cpitcohorts_pb = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
-    combined_scores_pb,
-    values_va,
-    w_va,
-    cost_va,
-    'm',
-)
-print("percentile barrier aucc: ", aucc_pb)
+# mplt_pb, aucc_pb, percs_pb, cpits_pb, cpitcohorts_pb = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
+#     combined_scores_pb,
+#     values_va,
+#     w_va,
+#     cost_va,
+#     'm',
+# )
+# print("percentile barrier aucc: ", aucc_pb)
 
 
 # ----- Causal Tree ----- # 
-# file_path_o = "results_uscensus/causal_forest_grf_test_set_results_O_numtrees50_alpha0.2_min_node_size3_sample_fraction0.5.csv"
-file_path_o = "results_covtype/causal_forest_grf_test_set_results_O_numtrees60_alpha0.2_min_node_size4_sample_fraction0.5.csv"
+file_path_o = "results_uscensus/causal_forest_grf_test_set_results_O_numtrees50_alpha0.2_min_node_size3_sample_fraction0.5.csv"
+# file_path_o = "results_covtype/causal_forest_grf_test_set_results_O_numtrees60_alpha0.2_min_node_size4_sample_fraction0.5.csv"
 predicted_o = pd.read_csv(file_path_o)
 predicted_o = predicted_o.transpose()
 # Remove the header row by resetting the index and dropping the first row
@@ -253,8 +253,8 @@ predicted_o = predicted_o.astype(float)
 # Flatten the DataFrame to convert it into a Series
 # predicted_o = predicted_o.squeeze()
 
-file_path_c = "results_covtype/causal_forest_grf_test_set_results_C_numtrees60_alpha0.2_min_node_size4_sample_fraction0.5.csv"
-# file_path_c = "results_uscensus/causal_forest_grf_test_set_results_C_numtrees50_alpha0.2_min_node_size3_sample_fraction0.5.csv"
+# file_path_c = "results_covtype/causal_forest_grf_test_set_results_C_numtrees60_alpha0.2_min_node_size4_sample_fraction0.5.csv"
+file_path_c = "results_uscensus/causal_forest_grf_test_set_results_C_numtrees50_alpha0.2_min_node_size3_sample_fraction0.5.csv"
 predicted_c = pd.read_csv(file_path_c)
 predicted_c = predicted_c.transpose()
 predicted_c = predicted_c.iloc[1:].reset_index(drop=True)
@@ -360,12 +360,12 @@ mplt_mlp.legend(
         "R-Learner",
         "DRM (Direct Ranking Model)",
         "Percentile Barrier Model",
-        "Percentile Barrier Model Annealing",
+        # "Percentile Barrier Model Annealing",
         "Causal Tree",
         "Duality R-Learner",
         "R-Learner 2 Layer MLP"
     ],
-    loc="upper left",  # Specify location of legend
+    loc="lower right",  # Specify location of legend
     fontsize=8
 )
-mplt_mlp.savefig('covtype_graphs.png')
+mplt_mlp.savefig('us_census_graphs.png')
