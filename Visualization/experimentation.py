@@ -230,7 +230,7 @@ class Experiment():
         
         ### [for Hong:] feel free to save this to file 
         ### let's define the interface between eng and vis 
-        plt.plot(combined_series[:, 2], combined_series[:, 1], '-o'+color, markersize=12, linewidth=3)
+        plt.plot(combined_series[:, 2], combined_series[:, 1], '-o', color = color, markersize=12, linewidth=3)
         ### [Todo:] define the file format
         ### ask Bhavya about this evaluator interface
         
