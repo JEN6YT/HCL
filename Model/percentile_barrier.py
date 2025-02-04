@@ -48,7 +48,10 @@ class percentile_barrier_model(nn.Module):
             h_unt_rnkscore = torch.tanh(self.ranker(D_unt))
         
         return h_tre_rnkscore, h_unt_rnkscore
-    
+
+def soft_abs(x, beta=40.0):
+    return torch.log(1 + torch.exp(beta * x)) + torch.log(1 + torch.exp(-beta * x)) / beta
+
 def compute_objective_pb(D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, model):
     
     # Forward pass: compute rank scores
@@ -79,9 +82,9 @@ def compute_objective_pb(D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, model):
     do_unt = torch.sum(s_unt * h_unt * o_unt)
     
     # Compute the objective
-    obj = (dc_tre - dc_unt) / (do_tre - do_unt)  # Adding a small epsilon to avoid division by zero
-
-    return obj
+    #obj = F.relu(dc_tre - dc_unt) / (F.relu(do_tre - do_unt) + 1e-7)  # Adding a small epsilon to avoid division by zero
+    obj = do_tre - do_unt / (soft_abs(dc_tre - dc_unt) + 1e-10)
+    return obj, dc_tre - dc_unt, do_tre - do_unt
 
 
 def optimize_model_pb(model, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, lr=0.001, epochs = 10):
@@ -105,10 +108,13 @@ def optimize_model_pb(model, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, lr=0.001,
     optimizer.zero_grad()
     
     for epoch in range(epochs):
-        obj = compute_objective_pb(D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, model)
+        if epoch % 100 == 0: 
+            model.temperature += 0.1 
+        obj, a, b = compute_objective_pb(D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, model)
         (-obj).backward()  # Negative objective for maximization
         optimizer.step()
-        print(f"Epoch {epoch}/{epoch}, Objective: {obj.item()}")
+        print(f"Epoch {epoch}/{epoch}, Objective: {obj.item()}, tau_C: {a.item()}, tau_O: {b.item()}")
+        #print(f"Epoch {epoch}/{epoch}, Objective: {obj.item()}")
     return obj
 
 """
