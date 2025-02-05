@@ -10,6 +10,8 @@ from Model.drm import *
 from Model.percentile_barrier import *
 from Model.dual_rlearner_new import DualRLearner
 from Model.rlearner_mlp import mlprlearner
+from Model.rlearner_propensity import RLearner_propensity
+from Model.drm_propensity import *
 
 import argparse
 
@@ -72,9 +74,26 @@ def main():
     )
 
     print("rlearner aucc: ", aucc)
+
     # note x forwarding is not working for pyplot.show()
     # mplt.savefig('test_aucc_plot.png')
 
+    # ----- rlearner with propensity ----- #
+
+    rlearnermodel_propensity = RLearner_propensity()
+    rlearnermodel_propensity.fit(nX_tr, o)
+    pred_values_va_propensity = rlearnermodel_propensity.tau_model.predict(nX_va)
+
+    mplt_propensity, aucc_propensity, percs_propensity, cpits_propensity, cpitcohorts_propensity = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
+        pred_values_va_propensity,
+        values_va,
+        w_va,
+        cost_va,
+        'orange',
+    )
+
+    print("rlearner with propensity aucc: ", aucc_propensity)
+    # mplt_propensity.savefig('test_aucc_plot_propensity.png')
 
     # ----- dual rlearner ----- # 
     drl = DualRLearner()
@@ -106,7 +125,7 @@ def main():
     """
 
 
-    lmda = 0.01
+    lmda = 0.05
 
     # for covertype
     # fitting_drl = drl.fit_dual(nX_tr, np.reshape(values_tr, [-1, 1]), np.reshape(cost_tr, [-1, 1]),  np.reshape(w_tr, [-1, 1]), lmda)
@@ -195,7 +214,7 @@ def main():
 
     # ----- Percentil Barrier Model ----- # 
 
-    p_quantile = torch.tensor(0.5, dtype=torch.float32)
+    p_quantile = torch.tensor(0.4, dtype=torch.float32)
     initial_temperature = torch.tensor(3, dtype=torch.float32)
 
     pb_model = percentile_barrier_model(input_dim=input_dim, hidden_dim=number_of_hidden, initial_temp=initial_temperature, p_quantile=p_quantile)
@@ -238,62 +257,12 @@ def main():
 
     # mplt_pb.savefig('test_aucc_plot_pb.png')
 
-    # # ----- Percentil Barrier Model ----- # 
-
-    # from Model.percentile_barrier_annealing import *
-
-    # p_quantile = torch.tensor(0.4, dtype=torch.float32)
-    # initial_temperature = torch.tensor(0.5, dtype=torch.float32)
-
-    # pb_model = percentile_barrier_model_anneal(input_dim=51, hidden_dim=92, initial_temp=initial_temperature, p_quantile=p_quantile)
-
-    # h_tre_rnkscore_pb, h_unt_rnkscore_pb  = pb_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
-
-    # # Training
-    # pb_epochs = 5000
-    # save_path_pb="model_pb.pth"
-
-    # pb_obj = optimize_model_pb_anneal(model=pb_model, 
-    #                                 D_tre=treat_nX_tr, 
-    #                                 D_unt=untreat_nX_tr, 
-    #                                 c_tre=treat_cost_tr, 
-    #                                 c_unt=untreat_cost_tr, 
-    #                                 o_tre=treat_value_tr, 
-    #                                 o_unt=untreat_value_tr,
-    #                                 epochs=pb_epochs,
-    #                                 temp_increment=0.01,
-    #                                 anneal_steps=10)
-        
-    # torch.save(pb_model.state_dict(), save_path_pb)
-    # print(f"Model saved to {save_path_pb}")
-
-    # pb_model.load_state_dict(torch.load("model_pb.pth"))
-    # pb_model.eval()
-
-    # # Prediction
-    # h_tre_rnkscore_val_pb, h_unt_rnkscore_val_pb = pb_model(D_tre=treat_nX_va, D_unt=untreat_nX_va)
-    # combined_scores_pb = np.zeros_like(w_va, dtype=np.float32)
-    # combined_scores_pb[val_treat_index] = h_tre_rnkscore_val_pb.detach().numpy().squeeze()
-    # combined_scores_pb[val_untreat_index] = h_unt_rnkscore_val_pb.detach().numpy().squeeze()
-
-    # mplt_pb, aucc_pb, percs_pb, cpits_pb, cpitcohorts_pb = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
-    #     combined_scores_pb,
-    #     values_va,
-    #     w_va,
-    #     cost_va,
-    #     'm',
-    # )
-    # print("percentile barrier aucc: ", aucc_pb)
-
-
     # ----- DRM ----- # 
 
     drm_model = SimpleTCModelDNN(input_dim= input_dim, num_hidden= number_of_hidden)
 
-    h_tre_rnkscore, h_unt_rnkscore = drm_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
-
     # Training
-    drm_epochs = 1700
+    drm_epochs = 1500
     save_path="model_drm.pth"
 
     drm_obj = optimize_model(model=drm_model, 
@@ -327,6 +296,49 @@ def main():
 
     print("drm aucc: ", aucc_drm)
     # mplt_drm.savefig('test_aucc_plot_drm.png')
+
+
+    # ----- DRM with propensity----- # 
+
+    drm_model_pro = SimpleTCModelDNN_propensity(input_dim= input_dim, num_hidden= number_of_hidden)
+
+    # Training
+    drm_epochs = 1500
+    save_path="model_drm_pro.pth"
+
+    drm_obj_pro = optimize_model_pro(model=drm_model_pro, 
+                                X = nX_tr,
+                                w = w_tr,
+                                D_tre=treat_nX_tr, 
+                                D_unt=untreat_nX_tr, 
+                                c_tre=treat_cost_tr, 
+                                c_unt=untreat_cost_tr, 
+                                o_tre=treat_value_tr, 
+                                o_unt=untreat_value_tr,
+                                epochs=drm_epochs)
+
+    torch.save(drm_model_pro.state_dict(), save_path)
+    print(f"Model saved to {save_path}")
+
+    drm_model_pro.load_state_dict(torch.load("model_drm_pro.pth"))
+    drm_model_pro.eval()
+
+    # Prediction
+    h_tre_rnkscore_val_pro, h_unt_rnkscore_val_pro, _ = drm_model_pro(D_tre=treat_nX_va, D_unt=untreat_nX_va)
+    combined_scores_pro = np.zeros_like(w_va, dtype=np.float32)
+    combined_scores_pro[val_treat_index] = h_tre_rnkscore_val_pro.detach().numpy().squeeze()
+    combined_scores_pro[val_untreat_index] = h_unt_rnkscore_val_pro.detach().numpy().squeeze()
+
+    mplt_drm_pro, aucc_drm_pro, percs_drm_pro, cpits_drm_pro, cpitcohorts_drm_pro = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
+        combined_scores_pro,
+        values_va,
+        w_va,
+        cost_va,
+        'pink',
+    )
+
+    print("drm propensity aucc: ", aucc_drm_pro)
+    mplt_drm_pro.savefig('test_aucc_plot_drm_pro.png')
 
 
     # ----- rlearner 2layer mlp ----- # 
