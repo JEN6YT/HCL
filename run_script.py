@@ -306,16 +306,16 @@ def main():
     drm_epochs = 1500
     save_path="model_drm_pro.pth"
 
-    drm_obj_pro = optimize_model_pro(model=drm_model_pro, 
-                                X = nX_tr,
-                                w = w_tr,
-                                D_tre=treat_nX_tr, 
-                                D_unt=untreat_nX_tr, 
-                                c_tre=treat_cost_tr, 
-                                c_unt=untreat_cost_tr, 
-                                o_tre=treat_value_tr, 
-                                o_unt=untreat_value_tr,
-                                epochs=drm_epochs)
+    drm_obj_pro = drm_model_pro.optimize_model_pro(model=drm_model_pro, 
+                                                    X = nX_tr,
+                                                    w = w_tr,
+                                                    D_tre=treat_nX_tr, 
+                                                    D_unt=untreat_nX_tr, 
+                                                    c_tre=treat_cost_tr, 
+                                                    c_unt=untreat_cost_tr, 
+                                                    o_tre=treat_value_tr, 
+                                                    o_unt=untreat_value_tr,
+                                                    epochs=drm_epochs)
 
     torch.save(drm_model_pro.state_dict(), save_path)
     print(f"Model saved to {save_path}")
@@ -324,7 +324,7 @@ def main():
     drm_model_pro.eval()
 
     # Prediction
-    h_tre_rnkscore_val_pro, h_unt_rnkscore_val_pro, _ = drm_model_pro(D_tre=treat_nX_va, D_unt=untreat_nX_va)
+    h_tre_rnkscore_val_pro, h_unt_rnkscore_val_pro = drm_model_pro(D_tre=treat_nX_va, D_unt=untreat_nX_va)
     combined_scores_pro = np.zeros_like(w_va, dtype=np.float32)
     combined_scores_pro[val_treat_index] = h_tre_rnkscore_val_pro.detach().numpy().squeeze()
     combined_scores_pro[val_untreat_index] = h_unt_rnkscore_val_pro.detach().numpy().squeeze()

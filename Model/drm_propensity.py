@@ -58,7 +58,7 @@ class SimpleTCModelDNN_propensity(nn.Module):
             w_fit = w[fit_idx]
                         
             p_model.fit(X_fit, w_fit)
-            p_hat[pred_idx] = p_model.predict(X=X_pred)
+            p_hat[pred_idx] = p_model.predict_proba(X=X_pred)[:,1]
         
         p_hat = np.clip(p_hat, 0 + 1e-7, 1 - 1e-7) 
         
@@ -78,7 +78,8 @@ class SimpleTCModelDNN_propensity(nn.Module):
         """
 
         # compute average (# of treatment / total # of samples) as e_hat
-        e_hat = len(D_tre) / (len(D_tre) + len(D_unt))
+        # e_hat = D_tre.shape[0] / (D_tre.shape[0] + D_unt.shape[0])
+
 
         if self.num_hidden > 0:
             h_tre = torch.tanh(self.hidden_layer(D_tre))
@@ -89,12 +90,12 @@ class SimpleTCModelDNN_propensity(nn.Module):
             h_tre_rnkscore = torch.tanh(self.ranker(D_tre))
             h_unt_rnkscore = torch.tanh(self.ranker(D_unt))
         
-        return h_tre_rnkscore, h_unt_rnkscore, e_hat
+        return h_tre_rnkscore, h_unt_rnkscore
     
     def soft_abs(self, x, beta=40.0):
         return torch.log(1 + torch.exp(beta * x)) + torch.log(1 + torch.exp(-beta * x)) / beta
 
-    def compute_objective(self, h_tre_rnkscore, h_unt_rnkscore, c_tre, c_unt, o_tre, o_unt, e_hat, X, w):
+    def compute_objective(self, h_tre_rnkscore, h_unt_rnkscore, c_tre, c_unt, o_tre, o_unt, e_hat, e_x_tre, e_x_unt):
         """
         Computes the cost-gain effectiveness objective.
 
@@ -110,12 +111,6 @@ class SimpleTCModelDNN_propensity(nn.Module):
         - obj: torch.Tensor, the computed objective.
         """
 
-        e_x = torch.tensor(self.fit_predict_p_hat(X, w), dtype=torch.float32)
-        treat_index = np.where(w==1)[0]
-        untreat_index = np.where(w==0)[0]
-
-        e_x_tre = e_x[treat_index]
-        e_x_unt = e_x[untreat_index]
         # e_x_tre = torch.clamp(e_x[treat_index], min=1e-6, max=1.0)
         # e_x_unt = torch.clamp(e_x[untreat_index], min=1e-6, max=1.0)
 
@@ -136,35 +131,49 @@ class SimpleTCModelDNN_propensity(nn.Module):
         obj = (self.soft_abs(e_hat*do_tre - (1-e_hat)*do_unt))/(self.soft_abs(e_hat*dc_tre - (1-e_hat)*dc_unt)+1e-10)
 
         # obj = (F.relu(e_hat*do_tre - (1-e_hat)*do_unt))/(F.relu(e_hat*dc_tre - (1-e_hat)*dc_unt)+1e-10)
-        return obj
+        return obj, e_hat*dc_tre - (1-e_hat)*dc_unt, e_hat*do_tre - (1-e_hat)*do_unt
     
 
-def optimize_model_pro(model, X, w, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, lr=0.0001, epochs = 10):
-    """
-    Optimizes the model using the Adam optimizer.
+    def optimize_model_pro(self, model, X, w, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, lr=0.0001, epochs = 10):
+        """
+        Optimizes the model using the Adam optimizer.
 
-    Args:
-    - model: nn.Module, the model to optimize.
-    - D_tre: torch.Tensor, features for treatment group.
-    - D_unt: torch.Tensor, features for control group.
-    - c_tre: torch.Tensor, cost labels for treatment group.
-    - c_unt: torch.Tensor, cost labels for control group.
-    - o_tre: torch.Tensor, order labels for treatment group.
-    - o_unt: torch.Tensor, order labels for control group.
-    - lr: float, learning rate.
+        Args:
+        - model: nn.Module, the model to optimize.
+        - D_tre: torch.Tensor, features for treatment group.
+        - D_unt: torch.Tensor, features for control group.
+        - c_tre: torch.Tensor, cost labels for treatment group.
+        - c_unt: torch.Tensor, cost labels for control group.
+        - o_tre: torch.Tensor, order labels for treatment group.
+        - o_unt: torch.Tensor, order labels for control group.
+        - lr: float, learning rate.
 
-    Returns:
-    - obj: torch.Tensor, the computed objective.
-    """
-    optimizer = Adam(model.parameters(), lr=lr)
-    optimizer.zero_grad()
-    
-    for epoch in range(epochs):
-        h_tre_rnkscore, h_unt_rnkscore, e_hat = model(D_tre, D_unt)
-        obj = model.compute_objective(h_tre_rnkscore, h_unt_rnkscore, c_tre, c_unt, o_tre, o_unt, e_hat, X, w)
+        Returns:
+        - obj: torch.Tensor, the computed objective.
+        """
+        optimizer = Adam(model.parameters(), lr=lr)
+        optimizer.zero_grad()
 
-        (-obj).backward()  # Negative objective for maximization
-        optimizer.step()
+        e_x = torch.tensor(self.fit_predict_p_hat(X, w), dtype=torch.float32)
+        # print(e_x)
+
+        treat_index = np.where(w==1)[0]
+        untreat_index = np.where(w==0)[0]
+
+        e_hat = len(treat_index) / (len(treat_index) + len(untreat_index))
+        # print(e_hat)
+
+        e_x_tre = e_x[treat_index]
+        e_x_unt = e_x[untreat_index]
         
-        print(f"Epoch {epoch}/{epoch}, Objective: {obj.item()}")
-    return obj
+        for epoch in range(epochs):
+            h_tre_rnkscore, h_unt_rnkscore = model(D_tre, D_unt)
+            obj, a, b = model.compute_objective(h_tre_rnkscore, h_unt_rnkscore, c_tre, c_unt, o_tre, o_unt, e_hat, e_x_tre, e_x_unt)
+
+            (-obj).backward()  # Negative objective for maximization
+            optimizer.step()
+            
+            # print(f"Epoch {epoch}/{epoch}, Objective: {obj.item()}")
+            print(f"Epoch {epoch}/{epoch}, Objective: {obj.item()}, tau_C: {a.item()}, tau_O: {b.item()}")
+
+        return obj
