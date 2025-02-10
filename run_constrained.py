@@ -41,7 +41,7 @@ nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr,
 # nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = process_data("/Users/jenniferzhang/Desktop/Research with Will/covtype.csv") 
 
 # ----- rlearner ----- # 
-rlearnermodel_O = RLearner()
+rlearnermodel_O = RLearner(use_propensity=False)
 z = np.zeros([len(values_tr), 1]) 
 o = np.concatenate((np.reshape(values_tr, [-1, 1]), z), axis=1) 
 o = np.concatenate((o, np.reshape(w_tr, [-1, 1])), axis=1)

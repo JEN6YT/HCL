@@ -21,9 +21,9 @@ class DualRLearner:
         :return: fitted model object 
         """
         if m_model_specs == '' and tau_model_specs == '' and p_model_specs == '': 
-            self.rlearnermodel_L = RLearner() 
+            self.rlearnermodel_L = RLearner(use_propensity=False) 
         else: 
-            self.rlearnermodel_L = RLearner(m_model_specs=m_model_specs, tau_model_specs=tau_model_specs, p_model_specs=p_model_specs)         
+            self.rlearnermodel_L = RLearner(use_propensity=False,  p_model_specs=p_model_specs, m_model_specs=m_model_specs, tau_model_specs=tau_model_specs)         
         
         y = np.concatenate((np.reshape(O_tr, [-1, 1]), np.reshape(C_tr, [-1, 1])), axis=1)
         y = np.concatenate((y, np.reshape(w_tr, [-1, 1])), axis=1) 

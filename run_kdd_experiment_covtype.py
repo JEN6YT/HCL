@@ -43,7 +43,7 @@ INPUT_DIM = 51
 HIDDEN_DIM = 0
 
 # ----- rlearner ----- # 
-rlearnermodel_O = RLearner()
+rlearnermodel_O = RLearner(use_propensity=False)
 z = np.zeros([len(values_tr), 1]) 
 o = np.concatenate((np.reshape(values_tr, [-1, 1]), z), axis=1) 
 o = np.concatenate((o, np.reshape(w_tr, [-1, 1])), axis=1)
