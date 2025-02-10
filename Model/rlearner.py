@@ -12,7 +12,8 @@ class RLearner:
     
     def __init__( 
             self, 
-            p_model_specs=None, 
+            use_propensity=True,
+            p_model_specs={'model': linear_model.LogisticRegression, 'params': {'C': 1.0, 'max_iter': 1000}},
             # ToDo: change the default to Ridge regression as OLS will have explosive coefficients
             m_model_specs={'model': linear_model.Ridge, 'params': {'alpha': 1.0}},
             tau_model_specs={'model': linear_model.Ridge, 'params': {'alpha': 1.0}},
@@ -30,8 +31,10 @@ class RLearner:
         :param shadow: shadow scale for objective cost - shadow * value
         :param k_fold: number of folds to use k-fold to predict p_hat and m_hat
         """
-        
-        self.p_model_specs = p_model_specs
+        if use_propensity:
+            self.p_model_specs = None
+        else:
+            self.p_model_specs = p_model_specs
         self.m_model_specs = m_model_specs
         self.tau_model_specs = tau_model_specs
         
