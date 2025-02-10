@@ -36,8 +36,9 @@ def main():
     ex = Experiment()
 
     # Define parameters for new objective
-    alpha = 0.7
-    top_k_percent = [0.1, 0.15, 0.2, 0.3, 0.4, 0.6, 0.8, 1.0]
+    beta = 1.3
+    alpha = 1.5
+    top_k_percent = [0.15, 0.2, 0.3, 0.4, 0.6, 0.8, 1.0]
 
     # nX: user features
     # w: T (whether user is treated or not)
@@ -45,6 +46,8 @@ def main():
     # cost: iFertil (positive cost)
 
     # # ----- rlearner ----- # 
+
+    print("Training rlearner without propensity")
 
     # Rlearner for O
     rlearnermodel_O = RLearner(use_propensity=False)
@@ -61,18 +64,50 @@ def main():
 
     # Prediction
 
+    e_hat = len(np.where(w_va==1)[0]) / (len(np.where(w_va==0)[0]) + len(np.where(w_va==1)[0]))
+    # print(e_hat)
+    e_x_o = rlearnermodel_O._fit_predict_p_hat(nX_va, w_va)
+    e_x_c = rlearnermodel_C._fit_predict_p_hat(nX_va, w_va)
+
+    values_va_weighted_tr = np.multiply(np.divide(e_hat, e_x_o), values_va)
+    values_va_weighted_un = np.multiply(np.divide(1-e_hat, 1-e_x_o), values_va)
+    cost_va_weighted_tr = np.multiply(np.divide(e_hat, e_x_c), cost_va)
+    cost_va_weighted_un = np.multiply(np.divide(1-e_hat, 1-e_x_c), cost_va)
+
+    values_va_weighted_tr = np.asarray(values_va_weighted_tr)
+    values_va_weighted_un = np.asarray(values_va_weighted_un)
+    cost_va_weighted_tr = np.asarray(cost_va_weighted_tr)
+    cost_va_weighted_un = np.asarray(cost_va_weighted_un)
+
+    all_indices = torch.arange(len(w_va)) # Get all indices
+
     for k in top_k_percent:
-        pred_values_va = rlearnermodel_O.tau_model.predict(nX_va) - alpha * rlearnermodel_C.tau_model.predict(nX_va)
+        pred_values_va = rlearnermodel_O.tau_model.predict(nX_va) - beta * rlearnermodel_C.tau_model.predict(nX_va)
         # Get top-k indices
         # Ensure it's a PyTorch tensor
         pred_values_va = torch.tensor(pred_values_va)
         k = max(1, int(len(pred_values_va) * (k / 100)))
         # Get top-k values
-        top_k_values, _ = torch.topk(pred_values_va, k)
+        top_k_values, top_k_indices = torch.topk(pred_values_va, k)
+        
+        threshold = top_k_values[-1]  # Get lowest score in top-k
+        cut_indices = torch.where(pred_values_va >= threshold)[0]
 
-        # Return mean of top-k values
-        print(top_k_values.mean().item())  # Convert to scalar for readability
+        # Get treated indices (where cut_indices and w_va == 1)
+        treated_selected_ind = cut_indices[(w_va[cut_indices] == 1)]
 
+        untreated_selected_ind = torch.tensor(np.setdiff1d(all_indices.numpy(), treated_selected_ind.numpy()))
+
+        prob_tr = F.softmax(pred_values_va[treated_selected_ind], dim=0)
+        prob_un = F.softmax(pred_values_va[untreated_selected_ind], dim=0)
+        prob_tr = np.asarray(prob_tr)
+        prob_un = np.asarray(prob_un)
+        obj = np.multiply(values_va_weighted_tr[treated_selected_ind], prob_tr).mean() \
+                - np.multiply(values_va_weighted_un[untreated_selected_ind], prob_un).mean() \
+                - beta * (np.multiply(cost_va_weighted_tr[treated_selected_ind], prob_tr).mean() \
+                            - np.multiply(cost_va_weighted_un[untreated_selected_ind], prob_un).mean())
+
+        print(obj)
 
     # ----- rlearner with propensity ----- #
 
@@ -82,18 +117,52 @@ def main():
     rlearnermodel_c_propensity = RLearner(use_propensity=True)
     rlearnermodel_c_propensity.fit(nX_tr, c)
 
+    print("Rlearner with propensity")
+
+    e_x_o = rlearnermodel_o_propensity._fit_predict_p_hat(nX_va, w_va)
+    e_x_c = rlearnermodel_c_propensity._fit_predict_p_hat(nX_va, w_va)
+
+    values_va_weighted_tr = np.multiply(np.divide(e_hat, e_x_o), values_va)
+    values_va_weighted_un = np.multiply(np.divide(1-e_hat, 1-e_x_o), values_va)
+    cost_va_weighted_tr = np.multiply(np.divide(e_hat, e_x_c), cost_va)
+    cost_va_weighted_un = np.multiply(np.divide(1-e_hat, 1-e_x_c), cost_va)
+
+    values_va_weighted_tr = np.asarray(values_va_weighted_tr)
+    values_va_weighted_un = np.asarray(values_va_weighted_un)
+    cost_va_weighted_tr = np.asarray(cost_va_weighted_tr)
+    cost_va_weighted_un = np.asarray(cost_va_weighted_un)
+
     for k in top_k_percent:
-        pred_values_va_pro = rlearnermodel_o_propensity.tau_model.predict(nX_va) - alpha * rlearnermodel_c_propensity.tau_model.predict(nX_va)
+        # print(rlearnermodel_o_propensity.tau_model.predict(nX_va))
+        # print(rlearnermodel_c_propensity.tau_model.predict(nX_va))
+        pred_values_va_pro = rlearnermodel_o_propensity.tau_model.predict(nX_va) - beta * rlearnermodel_c_propensity.tau_model.predict(nX_va)
         # Get top-k indices
         # Ensure it's a PyTorch tensor
         pred_values_va_pro = torch.tensor(pred_values_va_pro)
 
         # Get top-k values
         k = max(1, int(len(pred_values_va_pro) * (k / 100)))
-        top_k_values, _ = torch.topk(pred_values_va_pro, k)
+        top_k_values, top_k_indices = torch.topk(pred_values_va_pro, k)
 
-        # Return mean of top-k values
-        print(top_k_values.mean().item())  # Convert to scalar for readability
+        threshold = top_k_values[-1]  # Get lowest score in top-k
+        cut_indices = torch.where(pred_values_va_pro >= threshold)[0]
+
+        # Get treated indices (where cut_indices and w_va == 1)
+        treated_selected_ind = cut_indices[(w_va[cut_indices] == 1)]
+
+        untreated_selected_ind = torch.tensor(np.setdiff1d(all_indices.numpy(), treated_selected_ind.numpy()))
+
+        prob_tr = F.softmax(pred_values_va_pro[treated_selected_ind], dim=0)
+        prob_un = F.softmax(pred_values_va_pro[untreated_selected_ind], dim=0)
+        prob_tr = np.asarray(prob_tr)
+        prob_un = np.asarray(prob_un)
+        obj = np.multiply(values_va_weighted_tr[treated_selected_ind], prob_tr).mean() \
+                - np.multiply(values_va_weighted_un[untreated_selected_ind], prob_un).mean() \
+                - beta * (np.multiply(cost_va_weighted_tr[treated_selected_ind], prob_tr).mean() \
+                            - np.multiply(cost_va_weighted_un[untreated_selected_ind], prob_un).mean())
+
+        print(obj)
+
 
 
     # Split data into treated and untreated
