@@ -10,8 +10,8 @@ from Model.drm import *
 from Model.percentile_barrier import *
 from Model.dual_rlearner_new import DualRLearner
 from Model.rlearner_mlp import mlprlearner
-from Model.rlearner_propensity import RLearner_propensity
-from Model.drm_propensity import *
+# from Model.rlearner_propensity import RLearner_propensity
+# from Model.drm_propensity import *
 
 import argparse
 
@@ -52,7 +52,7 @@ def main():
     plt.plot(x_values, y_values, color='k', linestyle='-', linewidth=3, marker='o', markersize=12)
 
     # ----- rlearner ----- # 
-    rlearnermodel_O = RLearner()
+    rlearnermodel_O = RLearner(use_propensity=False)
     z = np.zeros([len(values_tr), 1]) 
     o = np.concatenate((np.reshape(values_tr, [-1, 1]), z), axis=1) 
     o = np.concatenate((o, np.reshape(w_tr, [-1, 1])), axis=1)
@@ -78,21 +78,21 @@ def main():
     # note x forwarding is not working for pyplot.show()
     # mplt.savefig('test_aucc_plot.png')
 
-    # ----- rlearner with propensity ----- #
+    # # ----- rlearner with propensity ----- #
 
-    rlearnermodel_propensity = RLearner_propensity()
-    rlearnermodel_propensity.fit(nX_tr, o)
-    pred_values_va_propensity = rlearnermodel_propensity.tau_model.predict(nX_va)
+    # rlearnermodel_propensity = RLearner_propensity()
+    # rlearnermodel_propensity.fit(nX_tr, o)
+    # pred_values_va_propensity = rlearnermodel_propensity.tau_model.predict(nX_va)
 
-    mplt_propensity, aucc_propensity, percs_propensity, cpits_propensity, cpitcohorts_propensity = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
-        pred_values_va_propensity,
-        values_va,
-        w_va,
-        cost_va,
-        'orange',
-    )
+    # mplt_propensity, aucc_propensity, percs_propensity, cpits_propensity, cpitcohorts_propensity = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
+    #     pred_values_va_propensity,
+    #     values_va,
+    #     w_va,
+    #     cost_va,
+    #     'orange',
+    # )
 
-    print("rlearner with propensity aucc: ", aucc_propensity)
+    # print("rlearner with propensity aucc: ", aucc_propensity)
     # mplt_propensity.savefig('test_aucc_plot_propensity.png')
 
     # ----- dual rlearner ----- # 
@@ -300,45 +300,45 @@ def main():
 
     # ----- DRM with propensity----- # 
 
-    drm_model_pro = SimpleTCModelDNN_propensity(input_dim= input_dim, num_hidden= number_of_hidden)
+    # drm_model_pro = SimpleTCModelDNN_propensity(input_dim= input_dim, num_hidden= number_of_hidden)
 
-    # Training
-    drm_epochs = 1500
-    save_path="model_drm_pro.pth"
+    # # Training
+    # drm_epochs = 1500
+    # save_path="model_drm_pro.pth"
 
-    drm_obj_pro = drm_model_pro.optimize_model_pro(model=drm_model_pro, 
-                                                    X = nX_tr,
-                                                    w = w_tr,
-                                                    D_tre=treat_nX_tr, 
-                                                    D_unt=untreat_nX_tr, 
-                                                    c_tre=treat_cost_tr, 
-                                                    c_unt=untreat_cost_tr, 
-                                                    o_tre=treat_value_tr, 
-                                                    o_unt=untreat_value_tr,
-                                                    epochs=drm_epochs)
+    # drm_obj_pro = drm_model_pro.optimize_model_pro(model=drm_model_pro, 
+    #                                                 X = nX_tr,
+    #                                                 w = w_tr,
+    #                                                 D_tre=treat_nX_tr, 
+    #                                                 D_unt=untreat_nX_tr, 
+    #                                                 c_tre=treat_cost_tr, 
+    #                                                 c_unt=untreat_cost_tr, 
+    #                                                 o_tre=treat_value_tr, 
+    #                                                 o_unt=untreat_value_tr,
+    #                                                 epochs=drm_epochs)
 
-    torch.save(drm_model_pro.state_dict(), save_path)
-    print(f"Model saved to {save_path}")
+    # torch.save(drm_model_pro.state_dict(), save_path)
+    # print(f"Model saved to {save_path}")
 
-    drm_model_pro.load_state_dict(torch.load("model_drm_pro.pth"))
-    drm_model_pro.eval()
+    # drm_model_pro.load_state_dict(torch.load("model_drm_pro.pth"))
+    # drm_model_pro.eval()
 
-    # Prediction
-    h_tre_rnkscore_val_pro, h_unt_rnkscore_val_pro = drm_model_pro(D_tre=treat_nX_va, D_unt=untreat_nX_va)
-    combined_scores_pro = np.zeros_like(w_va, dtype=np.float32)
-    combined_scores_pro[val_treat_index] = h_tre_rnkscore_val_pro.detach().numpy().squeeze()
-    combined_scores_pro[val_untreat_index] = h_unt_rnkscore_val_pro.detach().numpy().squeeze()
+    # # Prediction
+    # h_tre_rnkscore_val_pro, h_unt_rnkscore_val_pro = drm_model_pro(D_tre=treat_nX_va, D_unt=untreat_nX_va)
+    # combined_scores_pro = np.zeros_like(w_va, dtype=np.float32)
+    # combined_scores_pro[val_treat_index] = h_tre_rnkscore_val_pro.detach().numpy().squeeze()
+    # combined_scores_pro[val_untreat_index] = h_unt_rnkscore_val_pro.detach().numpy().squeeze()
 
-    mplt_drm_pro, aucc_drm_pro, percs_drm_pro, cpits_drm_pro, cpitcohorts_drm_pro = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
-        combined_scores_pro,
-        values_va,
-        w_va,
-        cost_va,
-        'pink',
-    )
+    # mplt_drm_pro, aucc_drm_pro, percs_drm_pro, cpits_drm_pro, cpitcohorts_drm_pro = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
+    #     combined_scores_pro,
+    #     values_va,
+    #     w_va,
+    #     cost_va,
+    #     'pink',
+    # )
 
-    print("drm propensity aucc: ", aucc_drm_pro)
-    mplt_drm_pro.savefig('test_aucc_plot_drm_pro.png')
+    # print("drm propensity aucc: ", aucc_drm_pro)
+    # mplt_drm_pro.savefig('test_aucc_plot_drm_pro.png')
 
 
     # ----- rlearner 2layer mlp ----- # 
