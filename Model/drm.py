@@ -76,10 +76,8 @@ def compute_objective(h_tre_rnkscore, h_unt_rnkscore, c_tre, c_unt, o_tre, o_unt
 
     # Optional differentiable version:
     obj = soft_abs(do_tre - do_unt) / (soft_abs(dc_tre - dc_unt) + 1e-10)    
-    #obj = F.relu(do_tre - do_unt) / (F.relu(dc_tre - dc_unt))
-    #obj = - F.relu(abs(dc_tre - dc_unt)) / F.relu(abs(do_tre - do_unt)) 
-    #obj = - abs(dc_tre - dc_unt) / abs(do_tre - do_unt)
     return obj, dc_tre - dc_unt, do_tre - do_unt
+
 
 
 def optimize_model(model, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, lr=0.001, epochs = 10):
