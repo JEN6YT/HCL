@@ -63,9 +63,12 @@ def get_finance_api_data(url, max_retries=3, wait_time=5):
 
 def build_price_volume_chart_data(stock_list, start_date, end_date, url_str):
     D = {}
+    count = 0
+    full_count = len(stock_list)
     for item in stock_list:
         symbol = item['symbol']
-        print(f'Requesting price/volume data for {url_str} chart from {start_date} to {end_date} for {symbol} ...')
+        count += 1
+        print(f'{count}/{str(full_count)} Requesting price/volume data for {url_str} chart from {start_date} to {end_date} for {symbol} ...')
         url = f'https://financialmodelingprep.com/stable/{url_str}?symbol={symbol}&from={start_date}&to={end_date}'
         res = get_finance_api_data(url=url)
         res.reverse()
