@@ -1,12 +1,12 @@
 import pickle, pdb
 from utils import get_finance_api_data, build_price_volume_chart_data
-"""
+
 url = 'https://financialmodelingprep.com/stable/company-screener?marketCapMoreThan=10000000&exchange=NYSE&country=US&isEtf=false&limit=1000000000'
 nyse_list = get_finance_api_data(url=url)
 
 url = 'https://financialmodelingprep.com/stable/company-screener?marketCapMoreThan=10000000&exchange=NASDAQ&country=US&isEtf=false&isActiveTrading=True&limit=1000000000'
 nasdaq_list = get_finance_api_data(url=url)
-"""
+
 pickle.dump({"nyse_list":nyse_list, "nasdaq_list":nasdaq_list}, open('data/equity_lists.pkl', 'wb'))
 
 D = pickle.load(open('data/equity_lists.pkl', 'rb'))
