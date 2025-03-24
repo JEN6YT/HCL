@@ -20,13 +20,11 @@ fiveyrs_end_date = '2025-03-21'
 
 #### request all price data for daily chart in the past 5 years 
 
+print('Requesting all price data for daily chart in the past 5 years for NYSE...')
+url_str = 'historical-price-eod/light'
+pickle.dump(build_price_volume_chart_data(nyse_list, fiveyrs_start_date, fiveyrs_end_date, url_str), open('data/nyse_daily_price_volume_data.pkl', 'wb'))
+
 print('Requesting all price data for daily chart in the past 5 years for NASDAQ...')
 #url_str = 'historical-chart/15min'
 url_str = 'historical-price-eod/light'
 pickle.dump(build_price_volume_chart_data(nasdaq_list, fiveyrs_start_date, fiveyrs_end_date, url_str), open('data/nasdaq_daily_price_volume_data.pkl', 'wb'))
-
-### request all price data for daily chart in the past 5 years for NYSE 
-
-print('Requesting all price data for daily chart in the past 5 years for NYSE...')
-url_str = 'historical-price-eod/light'
-pickle.dump(build_price_volume_chart_data(nyse_list, fiveyrs_start_date, fiveyrs_end_date, url_str), open('data/nasdaq_daily_price_volume_data.pkl', 'wb'))
