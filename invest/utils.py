@@ -59,6 +59,10 @@ def get_finance_api_data(url, max_retries=3, wait_time=5):
             print(f"Request Error: {e}")
             break
 
+        except Exception as e:
+            print(f"Error: {e}")
+            break
+
     return None
 
 def build_price_volume_chart_data(stock_list, start_date, end_date, url_str):
@@ -71,6 +75,9 @@ def build_price_volume_chart_data(stock_list, start_date, end_date, url_str):
         print(f'{count}/{str(full_count)} Requesting price/volume data for {url_str} chart from {start_date} to {end_date} for {symbol} ...')
         url = f'https://financialmodelingprep.com/stable/{url_str}?symbol={symbol}&from={start_date}&to={end_date}'
         res = get_finance_api_data(url=url)
+        if not res:
+            print(f"Failed to get data for {symbol}")
+            continue
         res.reverse()
         prices = BiHashList()
         volumes = BiHashList()

@@ -56,8 +56,6 @@ class BiHashList:
 
     def return_ranged_value_list_from_keys(self, start_key, end_key):
         start_index = self._bD[start_key]
-        print(start_index)
         end_index = self._bD[end_key]
-        print(end_index)
         return self._list[start_index:end_index+1] 
         # note the +1, the range end key should exist, and +1 makes it possible to return the last element 
