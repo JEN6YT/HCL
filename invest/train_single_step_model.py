@@ -52,10 +52,10 @@ def main():
         test_kwargs.update(cuda_kwargs)
     """
     data = pickle.load(open('data/model_data_single_step_v3_alpacafracfiltered.pkl', 'rb'))
-    features = data['trainFeature']
-    series = data['train_in_portfolio_series']
-    eval_features = data['testFeature']
-    eval_series = data['test_in_portfolio_series']
+    features = data['trainFeature'].to(device)
+    series = data['train_in_portfolio_series'].to(device)
+    eval_features = data['testFeature'].to(device)
+    eval_series = data['test_in_portfolio_series'].to(device)
     model = IIMODEL().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     optimizer.zero_grad()
