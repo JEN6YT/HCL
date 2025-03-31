@@ -1,8 +1,22 @@
-import requests, pdb
+import requests, pdb, json
 from datetime import datetime
 from ts_data_struct import BiHashList
 
 FINANCIAL_KEY = "1e347f859bc1eaa56334ad8c5dc10924"
+
+def read_json_file(file_path):
+    """
+    Reads a JSON file and returns its content.
+
+    Args:
+        file_path: The path to the JSON file.
+
+    Returns:
+        The content of the JSON file.
+    """
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+    return data
 
 def find_closest_datetime(datetime_list, target_datetime):
     """

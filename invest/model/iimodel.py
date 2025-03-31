@@ -18,13 +18,16 @@ class IIMODEL(torch.nn.Module):
             torch.nn.Linear(num_conv_filters * self.adaptive_max_pool_output, hidden_dim),
             torch.nn.Tanh(),
         )
+        self.fc1_dropout = torch.nn.Dropout(p=0.25)
         self.fc2 = torch.nn.Linear(hidden_dim, 1)
         self.sm = torch.nn.Softmax(dim=0)
 
     def forward(self, x):
+        #x = torch.nn.functional.layer_norm(x, x.shape[1:])
         x = torch.unsqueeze(x, 1)  # Add a channel dimension
         x = self.conv1(x)
         x = self.fc1(x)
+        x = self.fc1_dropout(x)
         x = self.fc2(x)
         x = self.sm(x)
         return x
