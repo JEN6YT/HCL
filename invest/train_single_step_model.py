@@ -1,69 +1,74 @@
 import torch, pickle, argparse, pdb
 from model.iimodel import IIMODEL
 
-def main():
-    # Training settings
-    parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-    parser.add_argument('--batch-size', type=int, default=-1, metavar='N',
-                        help='input batch size for training (default: -1 for full dataset)')
-    parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
-                        help='input batch size for testing (default: 1000)')
-    parser.add_argument('--steps', type=int, default=300, metavar='N',
-                        help='number of steps to train (default: 1000)')
-    parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
-                        help='learning rate (default: 0.001)')
-    parser.add_argument('--gamma', type=float, default=0.7, metavar='M',
-                        help='Learning rate step gamma (default: 0.7)')
-    parser.add_argument('--device', type=str, default='cpu',
-                        help='device for compute (default: cpu)')
-    parser.add_argument('--dry-run', action='store_true', default=False,
-                        help='quickly check a single pass')
-    parser.add_argument('--seed', type=int, default=5, metavar='S',
-                        help='random seed (default: 1)')
-    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
-                        help='how many batches to wait before logging training status')
-    parser.add_argument('--eval-interval', type=int, default=50, metavar='N',
-                        help='how many batches to wait before evaluating the model')
-    parser.add_argument('--save-model', action='store_true', default=True,
-                        help='For Saving the current Model')
-    args = parser.parse_args()
-    
-    torch.manual_seed(args.seed)
 
-    if args.device == 'cuda':
+def train_single_step_model(
+        exp_id,
+        data_filename,
+        dropout_ratio,
+        obj_use_mean_return,
+        steps,
+        lr=0.0001,
+        device='cuda',
+        log_interval = 50,
+        eval_interval = 50,
+        seed = 5,
+    ):
+    
+    data_id = data_filename.split('single_step')[1].split('alpaca')[0]
+    model_id = 'single_action_m_'+ exp_id +'_dropout'+str(dropout_ratio)+'_objmeanret'+str(obj_use_mean_return)+'_steps'+str(steps)+'_lr'+str(lr)+'_'
+    root_dir = '/home/ubuntu/code/HCL/invest/data/'+exp_id+'/'
+
+    ## -- model training log -- 
+    log_D = dict()
+    log_D['data_filename'] = data_filename
+    log_D['dropout_ratio'] = dropout_ratio
+    log_D['steps'] = steps
+    log_D['lr'] = lr
+    log_D['log_interval'] = log_interval
+    log_D['eval_interval'] = eval_interval
+    log_D['seed'] = seed
+    
+    log_D['portfolio_shares'] = []
+    log_D['actual_return'] = []
+    log_D['mean_return'] = []
+    log_D['stddev'] = []
+    log_D['sharpe'] = []
+
+    log_D['eval_portfolio_shares'] = []
+    log_D['eval_actual_return'] = []
+    log_D['eval_mean_return'] = []
+    log_D['eval_stddev'] = []
+    log_D['eval_sharpe'] = []
+
+    log_D['top20_stocks'] = []
+    
+    torch.manual_seed(seed)
+    
+    if device == 'cuda':
         if not torch.cuda.is_available():
             raise ValueError("CUDA is not available. Please check your installation.")
         device = torch.device("cuda")
-    elif args.device == 'mps':
+    elif device == 'mps':
         if not torch.backends.mps.is_available():
             raise ValueError("MPS is not available. Please check your installation.")
         device = torch.device("mps")
     else:
         device = torch.device("cpu") 
 
-    """
-    train_kwargs = {'batch_size': args.batch_size}
-    test_kwargs = {'batch_size': args.test_batch_size}
-    if device == torch.device("cuda"):
-        cuda_kwargs = {'num_workers': 1,
-                       'pin_memory': True,
-                       'shuffle': True}
-        train_kwargs.update(cuda_kwargs)
-        test_kwargs.update(cuda_kwargs)
-    """
-    data = pickle.load(open('data/model_data_single_step_v3_alpacafracfiltered.pkl', 'rb'))
+    data = pickle.load(open(data_filename, 'rb'))
     features = data['trainFeature'].to(device)
     series = data['train_in_portfolio_series'].to(device)
     eval_features = data['testFeature'].to(device)
     eval_series = data['test_in_portfolio_series'].to(device)
-    model = IIMODEL().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    model = IIMODEL(dropout_ratio=dropout_ratio).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     optimizer.zero_grad()
 
     features, series = features.to(device), series.to(device)
     eval_features, eval_series = eval_features.to(device), eval_series.to(device)
     
-    for step in range(1, args.steps + 1):
+    for step in range(1, steps + 1):
         model.train()
         output = model(features)
 
@@ -75,29 +80,35 @@ def main():
         returns_series = torch.sum(series[:, 1:] * portfolio_shares - torch.unsqueeze(series[:, 0], 1) * portfolio_shares, dim=0)
         mean_return = torch.mean(returns_series, dim=0)
         stddev = torch.std(returns_series, dim=0)
-        
-        #sharpe = mean_return / stddev 
-        sharpe = actual_return / stddev 
+
+        if obj_use_mean_return: 
+            sharpe = mean_return / (stddev + 1e-10)
+        else: 
+            sharpe = actual_return / (stddev + 1e-10)
         loss = - sharpe 
         
         loss.backward()
         optimizer.step()
 
-        if step % args.log_interval == 0:
+        if step % log_interval == 0:
+            log_D['portfolio_shares'].append(portfolio_shares)
+            log_D['actual_return'].append(actual_return.item())
+            log_D['mean_return'].append(mean_return.item())
+            log_D['stddev'].append(stddev.item()) 
+            log_D['sharpe'].append(sharpe.item())
+            
             print('Train step: {} [{}/{} ({:.0f}%)]\tLoss (Sharpe ratio): {:.6f}\tMean Return: {:.3f}\tActual Return: {:.3f}\tStd Dev: {:.6f}'.format(
                 step, 
                 step, 
-                args.steps,
-                100. * step / args.steps, 
+                steps,
+                100. * step / steps, 
                 loss.item(), 
                 mean_return.item(),
                 actual_return.item(),
                 stddev.item(),
             ))
-            if args.dry_run:
-                break
         
-        if step % args.eval_interval == 0: 
+        if step % eval_interval == 0:
             model.eval()
             eval_output = model(eval_features)
 
@@ -112,7 +123,7 @@ def main():
             eval_stddev = torch.std(eval_returns_series, dim=0)
             
             #eval_sharpe = eval_mean_return / eval_stddev 
-            eval_sharpe = eval_actual_return / eval_stddev 
+            eval_sharpe = eval_actual_return / (eval_stddev + 1e-10)
             eval_loss = - eval_sharpe 
 
             _, top20_stocks_indices = torch.topk(eval_output, 20, dim=0)
@@ -121,9 +132,16 @@ def main():
                 top20_stocks.append(data['all_test_tickers'][top20_stocks_indices[i]])
             print(f'--> Eval model:\tLoss (Sharpe ratio): {str(eval_loss.item())}\tMean Returns:{str(eval_mean_return)}\t Actual Returns: {str(eval_actual_return.item())}\tStd Dev: {str(eval_stddev.item())}') 
             print(f'--> Top 20 stocks: {str(top20_stocks)}')
-            if args.save_model:
-                torch.save(model.state_dict(), f"ckpts/invest_single_step_model_test_step{str(step)}.pt")
+            
+            model_pt_filename = root_dir + model_id+'_' + data_id + '_step'+str(step)+'.pt'
+            torch.save(model.state_dict(), model_pt_filename)
 
-
-if __name__ == '__main__':
-    main()
+            log_D['eval_portfolio_shares'].append(eval_portfolio_shares)
+            log_D['eval_actual_return'].append(eval_actual_return.item())
+            log_D['eval_mean_return'].append(eval_mean_return.item())
+            log_D['eval_stddev'].append(eval_stddev.item())
+            log_D['eval_sharpe'].append(eval_sharpe.item())
+            log_D['top20_stocks'].append(top20_stocks)
+        
+        model_log_filename = root_dir + model_id + '_'+data_id + '_log.pkl'
+        pickle.dump(log_D, open(model_log_filename, 'wb'))

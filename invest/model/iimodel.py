@@ -1,12 +1,12 @@
 import torch, pdb
 
 class IIMODEL(torch.nn.Module):
-    def __init__(self, num_conv_filters = 64, hidden_dim=256):
+    def __init__(self, dropout_ratio=0.75, num_conv_filters = 64, hidden_dim=256):
         super(IIMODEL, self).__init__()
         self.num_conv_filters = num_conv_filters
         self.hidden_dim = hidden_dim
         self.adaptive_max_pool_output = 10 
-
+        
         # Define the layers of the model
         self.conv1 = torch.nn.Sequential(
             torch.nn.Conv1d(in_channels=1, out_channels=num_conv_filters, kernel_size=3),
@@ -18,7 +18,7 @@ class IIMODEL(torch.nn.Module):
             torch.nn.Linear(num_conv_filters * self.adaptive_max_pool_output, hidden_dim),
             torch.nn.Tanh(),
         )
-        self.fc1_dropout = torch.nn.Dropout(p=0.25)
+        self.fc1_dropout = torch.nn.Dropout(p=dropout_ratio)
         self.fc2 = torch.nn.Linear(hidden_dim, 1)
         self.sm = torch.nn.Softmax(dim=0)
 
