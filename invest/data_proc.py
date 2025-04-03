@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from utils import find_closest_datetime, read_json_file
 
 def doubleFilter(trainFeatures, dummy_tickers, all_tickers):
-
+    
     """
     Function used to double filter the features and all tickers with 'dummy_tickers'
     it makes sure the revised features and tickers is a set that is overlap of dummy_tickers and all_tickers
