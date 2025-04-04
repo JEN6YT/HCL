@@ -12,6 +12,7 @@ def train_single_step_model(
         device='cuda',
         log_interval = 50,
         eval_interval = 50,
+        is_prod = False,
         seed = 5,
     ):
     
@@ -125,15 +126,20 @@ def train_single_step_model(
             #eval_sharpe = eval_mean_return / eval_stddev 
             eval_sharpe = eval_actual_return / (eval_stddev + 1e-10)
             eval_loss = - eval_sharpe 
-
+            
             _, top20_stocks_indices = torch.topk(eval_output, 20, dim=0)
             top20_stocks = []
             for i in range(len(top20_stocks_indices)):
                 top20_stocks.append(data['all_test_tickers'][top20_stocks_indices[i]])
+            
             print(f'--> Eval model:\tLoss (Sharpe ratio): {str(eval_loss.item())}\tMean Returns:{str(eval_mean_return)}\t Actual Returns: {str(eval_actual_return.item())}\tStd Dev: {str(eval_stddev.item())}') 
             print(f'--> Top 20 stocks: {str(top20_stocks)}')
             
-            model_pt_filename = root_dir + model_id+'_' + data_id + '_step'+str(step)+'.pt'
+            if is_prod: 
+                model_pt_filename = root_dir + model_id + 'step'+str(step)+'.pt' 
+            else: 
+                model_pt_filename = root_dir + model_id+'_' + data_id + '_step'+str(step)+'.pt' 
+            
             torch.save(model.state_dict(), model_pt_filename)
 
             log_D['eval_portfolio_shares'].append(eval_portfolio_shares)

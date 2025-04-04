@@ -1,8 +1,17 @@
-import requests, pdb, json
+import requests, pdb, json, os, re
 from datetime import datetime
 from ts_data_struct import BiHashList
 
 FINANCIAL_KEY = "1e347f859bc1eaa56334ad8c5dc10924"
+
+def find_file_in_dir(dir, reg_pattern):
+    files_and_dirs = os.listdir(dir)
+    regex = re.compile(reg_pattern)
+    res = []
+    for file in files_and_dirs:
+        if regex.match(file):
+            res.append(file)
+    return res 
 
 def read_json_file(file_path):
     """

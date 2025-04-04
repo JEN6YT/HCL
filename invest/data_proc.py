@@ -65,9 +65,9 @@ def get_single_action_model_data(Dnyse, Dnasdaq, data_start_date, training_time_
 
     start_training_date_str = find_closest_datetime(all_datetime_dates, start_training_date).strftime(date_format)[:11]
     end_training_date_closest = find_closest_datetime(all_datetime_dates, end_training_date)
-    end_training_date_str = end_training_date_closest.strftime(date_format)[:11]
+    end_training_date_str = end_training_date_closest.strftime(date_format)[:10]
     buy_date_str = end_training_date_str
-    sell_date_str = find_closest_datetime(all_datetime_dates, end_training_date_closest + buy_sell_time_length).strftime(date_format)[:11]
+    sell_date_str = find_closest_datetime(all_datetime_dates, end_training_date_closest + buy_sell_time_length).strftime(date_format)[:10]
 
     print(start_training_date_str)
     print(end_training_date_str)
@@ -104,6 +104,7 @@ def get_single_action_model_train_test_data(
         training_data_start_date: str,
         test_data_start_date: str,
         data_list_file: str,
+        is_prod: bool = False, 
 ):
     """
     Function to extract training/test data for single action model 
@@ -174,10 +175,13 @@ def get_single_action_model_train_test_data(
     print(test_in_portfolio_series.shape)
     print(len(all_test_tickers))
     
-    filename = f"/home/ubuntu/code/HCL/invest/data/model_data_single_step_trainingtimelength{str(training_time_length_days)}d_buyselltimelength{str(buy_sell_time_length_days)}d_training_data_start_date_{training_data_start_date.strip().replace('-', '_')}_test_data_start_date_{test_data_start_date.strip().replace('-', '_')}_alpacafracfiltered.pkl"
+    if is_prod: 
+        filename = f"/home/ubuntu/code/HCL/invest/data/prod/model_data_single_step_trainingtimelength{str(training_time_length_days)}d_buyselltimelength{str(buy_sell_time_length_days)}d_training_data_start_date_{training_data_start_date.strip().replace('-', '_')}_test_data_start_date_{test_data_start_date.strip().replace('-', '_')}_alpacafracfiltered.pkl"
+        list_f = open(data_list_file, 'w')
+    else:     
+        filename = f"/home/ubuntu/code/HCL/invest/data/model_data_single_step_trainingtimelength{str(training_time_length_days)}d_buyselltimelength{str(buy_sell_time_length_days)}d_training_data_start_date_{training_data_start_date.strip().replace('-', '_')}_test_data_start_date_{test_data_start_date.strip().replace('-', '_')}_alpacafracfiltered.pkl"
+        list_f = open(data_list_file, 'a')
     print('saving to ... ' + filename)
-    list_f = open(data_list_file, 'a')
     list_f.write(filename+'\n')
     list_f.close()
-    
     pickle.dump({"trainFeature":trainFeature, "train_in_portfolio_series":train_in_portfolio_series, "all_train_tickers":all_train_tickers, "testFeature":testFeature, "test_in_portfolio_series":test_in_portfolio_series, "all_test_tickers":all_test_tickers}, open(filename, 'wb'))
