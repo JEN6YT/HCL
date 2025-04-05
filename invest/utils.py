@@ -1,8 +1,10 @@
 import requests, pdb, json, os, re
 from datetime import datetime
 from ts_data_struct import BiHashList
+from openai import OpenAI
 
-FINANCIAL_KEY = "1e347f859bc1eaa56334ad8c5dc10924"
+FINANCIAL_KEY = ""
+OPENAI_KEY = ""
 
 def find_file_in_dir(dir, reg_pattern):
     files_and_dirs = os.listdir(dir)
@@ -110,3 +112,54 @@ def build_price_volume_chart_data(stock_list, start_date, end_date, url_str):
             volumes.append(item['date'], item['volume'])
         D[symbol] = {'prices':prices, 'volumes':volumes}
     return D
+
+def get_news_full_string_ticker(tickers, from_date, to_date, page_limit=3):
+    text_str = ""
+    for page in range(page_limit):
+        url = f"https://financialmodelingprep.com/api/v3/stock_news?tickers={tickers}&page={page+1}&from={from_date}&to={to_date}"
+        res = get_finance_api_data(url)
+        additional_str = ""
+        for r in res:
+            additional_str += " published date:"+r["publishedDate"]+" title: "+r["title"]+" text: "+r["text"]
+        text_str += additional_str 
+    return text_str
+
+#def get_openai_embedding(url, ): 
+
+def get_openai_embedding(text_str, max_retries=3, wait_time=5):
+    client = OpenAI(api_key=OPENAI_KEY)
+
+    retries = 0
+    while retries < max_retries:
+        try:
+            response = client.embeddings.create(
+                input=text_str,
+                model="text-embedding-3-large"
+            )
+            return response.data[0].embedding
+
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 429:
+                print(f"Rate limit hit! Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+                wait_time *= 2
+                retries += 1
+            else:
+                print(f"HTTP Error {e.response.status_code}: {e.response.reason}")
+                break
+
+        except requests.exceptions.RequestException as e:
+            print(f"Request Error: {e}")
+            break
+
+        except Exception as e:
+            print(f"Error: {e}")
+            break
+
+    return None
+
+def get_news_embedding(tickers, from_date, to_date, page_limit=3):
+    text_str = get_news_full_string_ticker(tickers, from_date, to_date, page_limit=3)
+    res = get_openai_embedding(text_str)
+    return res 
+
