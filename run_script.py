@@ -21,7 +21,7 @@ def main():
     args = parser.parse_args()
 
     if args.data == "us_census":
-        data_path = '/Users/jenniferzhang/Desktop/Research with Will/USCensus1990.data.txt'
+        data_path = 'USCensus1990.data.txt'
         nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = preprocess_data(data_path) 
         input_dim = 46
         number_of_hidden = 92
@@ -29,7 +29,7 @@ def main():
         file_path_o = "results_uscensus/causal_forest_grf_test_set_results_O_numtrees50_alpha0.2_min_node_size3_sample_fraction0.5.csv"
         file_path_c = "results_uscensus/causal_forest_grf_test_set_results_C_numtrees50_alpha0.2_min_node_size3_sample_fraction0.5.csv"
     else:
-        data_path = "/Users/jenniferzhang/Desktop/Research with Will/covtype.csv"
+        data_path = "covtype.csv"
         nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te = process_data(data_path) 
         input_dim = 51
         number_of_hidden = 100
