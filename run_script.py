@@ -372,7 +372,7 @@ def main():
     # print("rlearner mlp aucc: ", aucc_mlp)
 
     # ----- Continuous Treatment Model ----- #
-    ctpm_model = CTPM(D_dim=input_dim, num_hidden=number_of_hidden, temp=initial_temperature, p_quantile=p_quantile, dropout_rate=0.1)
+    ctpm_model = CTPM(D_dim=input_dim, num_hidden=number_of_hidden, temp=initial_temperature, p_quantile=p_quantile, dropout_rate=0)
     # Training
     ctpm_epochs = 100
     save_path_ctpm="model_ctpm.pth"

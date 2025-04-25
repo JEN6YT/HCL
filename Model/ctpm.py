@@ -99,25 +99,29 @@ class CTPM(nn.Module):
 
         h_tre_rnkscore, h_unt_rnkscore = s_tre.clone(), s_unt.clone()
 
-        # Top-k sorting with differentiable approximation
-        top_k_tre = int(torch.ceil(torch.tensor(size_tre * self.p_quantile)).item())
-        top_k_unt = int(torch.ceil(torch.tensor(size_unt * self.p_quantile)).item())
+        # # Top-k sorting with differentiable approximation
+        # top_k_tre = int(torch.ceil(torch.tensor(size_tre * self.p_quantile)).item())
+        # top_k_unt = int(torch.ceil(torch.tensor(size_unt * self.p_quantile)).item())
 
-        h_tre_sorted, _ = torch.sort(s_tre, dim=0, descending=True)
-        h_unt_sorted, _ = torch.sort(s_unt, dim=0, descending=True)
+        # h_tre_sorted, _ = torch.sort(s_tre, dim=0, descending=True)
+        # h_unt_sorted, _ = torch.sort(s_unt, dim=0, descending=True)
 
-        intercept_tre = h_tre_sorted[top_k_tre - 1].detach()
-        intercept_unt = h_unt_sorted[top_k_unt - 1].detach()
+        # intercept_tre = h_tre_sorted[top_k_tre - 1].detach()
+        # intercept_unt = h_unt_sorted[top_k_unt - 1].detach()
 
-        h_tre = torch.sigmoid(self.temp * (s_tre - intercept_tre))
-        h_unt = torch.sigmoid(self.temp * (s_unt - intercept_unt))
+        # h_tre = torch.sigmoid(self.temp * (s_tre - intercept_tre))
+        # h_unt = torch.sigmoid(self.temp * (s_unt - intercept_unt))
 
-        h_tre = F.dropout(h_tre, self.dropout_rate)
-        h_unt = F.dropout(h_unt, self.dropout_rate)
+        # h_tre = F.dropout(h_tre, self.dropout_rate)
+        # h_unt = F.dropout(h_unt, self.dropout_rate)
 
-        # Softmax weights
-        s_tre = F.softmax(h_tre, dim=0)
-        s_unt = F.softmax(h_unt, dim=0)
+        # # Softmax weights
+        # s_tre = F.softmax(h_tre, dim=0)
+        # s_unt = F.softmax(h_unt, dim=0)
+
+        s_tre = F.softmax(s_tre, dim=0)
+        s_unt = F.softmax(s_unt, dim=0)
+
 
         # Objective
         dc_tre = torch.sum(s_tre.float() * c_tre.float())
@@ -133,8 +137,8 @@ class CTPM(nn.Module):
         # dist_diff = F.leaky_relu(dd_tre - dd_unt)
 
         # Objective
-        # obj = cost_diff / (order_diff + 1e-9) + d2dlamb * dist_diff
-        obj = cost_diff / (order_diff + 1e-9)
+        # obj = order_diff / (cost_diff + 1e-9) + d2dlamb * dist_diff
+        obj = order_diff / (cost_diff + 1e-9)
 
         return obj, dc_tre - dc_unt, do_tre - do_unt, h_tre_rnkscore, h_unt_rnkscore
     
