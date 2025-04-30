@@ -5,6 +5,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import Adam 
 
+def soft_abs(x, beta=40.0):
+    return torch.log(1 + torch.exp(beta * x)) + torch.log(1 + torch.exp(-beta * x)) / beta
+
 class CTPM(nn.Module):
     def __init__(self, D_dim, num_hidden, temp, p_quantile, dropout_rate):
         """
@@ -54,9 +57,6 @@ class CTPM(nn.Module):
         i_unt: control intensity (ex. number of working hours)
         """
 
-        size_tre = D_tre.shape[0]
-        size_unt = D_unt.shape[0]
-
         # Match scores
         if self.num_hidden > 0:
             tre_match_hidden = self.hidden_match(D_tre)
@@ -81,9 +81,8 @@ class CTPM(nn.Module):
         # Bell-shaped intensity score
 
         # difference between actually treatment intensity and predicted optimal intensity
-        diff_tre = i_tre.unsqueeze(1) - tre_policy_score
-        diff_unt = i_unt.unsqueeze(1) - unt_policy_score
-
+        diff_tre = i_tre.squeeze() - tre_policy_score.squeeze()
+        diff_unt = i_unt.squeeze() - unt_policy_score.squeeze()
         # derivative of sigmoid has a bell-shape curve
         # it peaks at diff = 0
         # decreases symmetrically as diff moves away from 0
@@ -92,8 +91,8 @@ class CTPM(nn.Module):
         lh_tre = torch.sigmoid(diff_tre) * (1 - torch.sigmoid(diff_tre))
         lh_unt = torch.sigmoid(diff_unt) * (1 - torch.sigmoid(diff_unt))
 
-        s_tre = s_tre * lh_tre
-        s_unt = s_unt * lh_unt
+        s_tre = s_tre.squeeze() * lh_tre
+        s_unt = s_unt.squeeze() * lh_unt
         s_tre = s_tre /(s_tre.sum() + 1e-17)
         s_unt = s_unt /(s_unt.sum() + 1e-17)
 
@@ -119,21 +118,22 @@ class CTPM(nn.Module):
         # s_tre = F.softmax(h_tre, dim=0)
         # s_unt = F.softmax(h_unt, dim=0)
 
-        s_tre = F.softmax(s_tre, dim=0)
-        s_unt = F.softmax(s_unt, dim=0)
-
+        # s_tre = F.softmax(s_tre, dim=0)
+        # s_unt = F.softmax(s_unt, dim=0)
 
         # Objective
+
         dc_tre = torch.sum(s_tre.float() * c_tre.float())
         dc_unt = torch.sum(s_unt.float() * c_unt.float())
         do_tre = torch.sum(s_tre.float() * o_tre.float())
         do_unt = torch.sum(s_unt.float() * o_unt.float())
+        # pdb.set_trace()
         # dd_tre = torch.sum(s_tre * d2d_tre)
         # dd_unt = torch.sum(s_unt * d2d_unt)
 
         # Cost-gain effectiveness
-        cost_diff = F.leaky_relu(dc_tre - dc_unt)
-        order_diff = F.leaky_relu(do_tre - do_unt)
+        cost_diff = soft_abs(dc_tre - dc_unt)
+        order_diff = soft_abs(do_tre - do_unt)
         # dist_diff = F.leaky_relu(dd_tre - dd_unt)
 
         # Objective
