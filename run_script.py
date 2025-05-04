@@ -1,6 +1,7 @@
 import pandas as pd, numpy as np, matplotlib.pyplot as plt
 from Data.proc_us_census import preprocess_data 
 from Data.proc_covtype import process_data
+from Data.proc_ponpare import processing_data
 from Model.rlearner import RLearner
 from Visualization.experimentation import Experiment 
 import torch
@@ -19,7 +20,7 @@ import pdb
 
 def main():
     parser = argparse.ArgumentParser(description='Run the causal inference models')
-    parser.add_argument('--data', type=str, choices=["us_census", "covtype"], help='Dataset to use')
+    parser.add_argument('--data', type=str, choices=["us_census", "covtype", "ponpare"], help='Dataset to use')
     args = parser.parse_args()
 
     if args.data == "us_census":
@@ -32,7 +33,7 @@ def main():
         save_fig_path = "us_census_graphs.png"
         file_path_o = "results_uscensus/causal_forest_grf_test_set_results_O_numtrees50_alpha0.2_min_node_size3_sample_fraction0.5.csv"
         file_path_c = "results_uscensus/causal_forest_grf_test_set_results_C_numtrees50_alpha0.2_min_node_size3_sample_fraction0.5.csv"
-    else:
+    elif args.data == "covtype":
         data_path = "/home/ubuntu/covtype.csv"
         data_path = "/Users/jenniferzhang/Desktop/Research with Will/HCL project/covtype.csv"
         # data_path = "covtype.csv"
@@ -42,7 +43,21 @@ def main():
         save_fig_path = "covtype_graphs.png"
         file_path_o = "results_covtype/causal_forest_grf_test_set_results_O_numtrees60_alpha0.2_min_node_size4_sample_fraction0.5.csv"
         file_path_c = "results_covtype/causal_forest_grf_test_set_results_C_numtrees60_alpha0.2_min_node_size4_sample_fraction0.5.csv"
-
+    elif args.data == "ponpare":
+        folder = '/Users/jenniferzhang/Desktop/Research with Will/HCL project/ponpare_data/'
+        user_list_file = folder + 'user_list.csv'
+        coupon_list_file = folder + 'coupon_list_train.csv'
+        detail_file = folder + 'coupon_detail_train.csv'
+        nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te, i_tr, i_va, i_te = \
+            processing_data(user_list_file, coupon_list_file, detail_file)
+        input_dim = 4
+        number_of_hidden = 10
+        save_fig_path = "ponpare_graphs.png"
+        file_path_o = "results_ponpare/causal_forest_grf_test_set_results_O_numtrees5_alpha0.2_min_node_size2_sample_fraction0.5.csv"
+        file_path_c = "results_ponpare/causal_forest_grf_test_set_results_C_numtrees5_alpha0.2_min_node_size2_sample_fraction0.5.csv"
+    else:
+        raise ValueError("Invalid dataset. Choose either 'us_census', 'covtype', or 'ponpare'.")
+    
     ex = Experiment()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -86,6 +101,8 @@ def main():
 
     # note x forwarding is not working for pyplot.show()
     # mplt.savefig('test_aucc_plot.png')
+
+    # pdb.set_trace()
 
     # # # ----- rlearner with propensity ----- #
 
