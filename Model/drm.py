@@ -1,4 +1,4 @@
-import torch
+import torch, pdb
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import Adam
@@ -65,7 +65,6 @@ def compute_objective(h_tre_rnkscore, h_unt_rnkscore, c_tre, c_unt, o_tre, o_unt
     s_tre = F.softmax(h_tre_rnkscore.squeeze(), dim=0)
     s_unt = F.softmax(h_unt_rnkscore.squeeze(), dim=0)
 
-    
     dc_tre = torch.sum(s_tre * c_tre)
     dc_unt = torch.sum(s_unt * c_unt)
 
@@ -75,7 +74,8 @@ def compute_objective(h_tre_rnkscore, h_unt_rnkscore, c_tre, c_unt, o_tre, o_unt
     #obj = (do_tre - do_unt) / (dc_tre - dc_unt) 
 
     # Optional differentiable version:
-    obj = soft_abs(do_tre - do_unt) / (soft_abs(dc_tre - dc_unt) + 1e-10)    
+    
+    obj = (do_tre - do_unt) / ((dc_tre - dc_unt) + 1e-10)
     return obj, dc_tre - dc_unt, do_tre - do_unt
 
 
@@ -101,9 +101,10 @@ def optimize_model(model, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, lr=0.001, ep
     optimizer.zero_grad()
     
     for epoch in range(epochs):
+        model.train()
         h_tre_rnkscore, h_unt_rnkscore = model(D_tre, D_unt)
         obj, a, b = compute_objective(h_tre_rnkscore, h_unt_rnkscore, c_tre, c_unt, o_tre, o_unt)
-
+        
         (-obj).backward()  # Negative objective for maximization
         optimizer.step()
         

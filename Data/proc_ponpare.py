@@ -4,14 +4,14 @@ import pickle as pkl
 
 import pdb
 
-def processing_data(user_list_file, coupon_list_file, detail_file):
+def preprocess_data(user_list_file, coupon_list_file, detail_file):
     # Read the dataset
     user_pd = pd.read_csv(user_list_file) 
     coupon_pd = pd.read_csv(coupon_list_file)
     detail_pd = pd.read_csv(detail_file)
     # Merge datasets
-    D = pd.merge(user_pd, detail_pd, how='inner', on='USER_ID_hash')
-    D = pd.merge(D, coupon_pd, how='inner', on='COUPON_ID_hash')
+    D = pd.merge(detail_pd, user_pd, how='left', on='USER_ID_hash')
+    D = pd.merge(D, coupon_pd, how='left', on='COUPON_ID_hash')
     D = D.drop_duplicates(subset=['USER_ID_hash', 'COUPON_ID_hash'], keep='first')
 
     # Data cleaning and filtering
@@ -29,7 +29,8 @@ def processing_data(user_list_file, coupon_list_file, detail_file):
 
 
     # get Treatment column
-    D['TREATMENT'] = 1 - D['DISCOUNT_PRICE'] / D['CATALOG_PRICE']
+    D['TREATMENT'] = (1 - D['DISCOUNT_PRICE'] / D['CATALOG_PRICE']) * D['ITEM_COUNT']
+    #D['TREATMENT'] = (D['CATALOG_PRICE'] - D['DISCOUNT_PRICE'])*D['ITEM_COUNT']
 
     # 1 - Discount_price / catalog_price
 
@@ -46,9 +47,9 @@ def processing_data(user_list_file, coupon_list_file, detail_file):
     feature_list = D.keys()[0:4].tolist()
 
     # Value
-    D['Reward'] = D['ITEM_COUNT'] * D['DISCOUNT_PRICE']
+    D['Reward'] = D['ITEM_COUNT'] #* D['DISCOUNT_PRICE']
     # Cost
-    D['Cost'] = D['ITEM_COUNT'] * (0.9 * D['CATALOG_PRICE']-D['DISCOUNT_PRICE'])
+    D['Cost'] = (0.9 * D['CATALOG_PRICE']-D['DISCOUNT_PRICE']) * D['ITEM_COUNT'] 
 
     # Remove rows with COST < 0
     D = D[D['Cost'] > 0]
@@ -108,3 +109,11 @@ def processing_data(user_list_file, coupon_list_file, detail_file):
 
     # Return the matrices
     return nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, negcost_tr, negcost_va, negcost_te, i_tr, i_va, i_te
+
+if __name__=="__main__":
+    nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, negcost_tr, negcost_va, negcost_te, i_tr, i_va, i_te = processing_data(
+        user_list_file = '/Users/willzou/code/hcl/data/ponpare/user_list.csv', 
+        coupon_list_file = '/Users/willzou/code/hcl/data/ponpare/coupon_list_train.csv', 
+        detail_file = '/Users/willzou/code/hcl/data/ponpare/coupon_detail_train.csv',
+    )
+    
