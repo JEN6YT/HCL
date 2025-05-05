@@ -69,7 +69,8 @@ treat_cost_tr = cost_tr[train_treat_index]
 untreat_cost_tr = cost_tr[train_untreat_index]
 treat_value_tr = values_tr[train_treat_index]
 untreat_value_tr = values_tr[train_untreat_index]
-
+treat_intensity_tr= i_tr[train_treat_index]
+untreat_intensity_tr = i_tr[train_untreat_index]
 
 val_treat_index = np.where(w_va==1)[0]
 val_untreat_index = np.where(w_va==0)[0]
@@ -79,7 +80,8 @@ treat_cost_va = cost_va[val_treat_index]
 untreat_cost_va = cost_va[val_untreat_index]
 treat_value_va = values_va[val_treat_index]
 untreat_value_va = values_va[val_untreat_index]
-
+treat_intensity_va = i_va[val_treat_index]
+untreat_intensity_va = i_va[val_untreat_index]
 
 treat_nX_tr = torch.tensor(treat_nX_tr, dtype=torch.float32)
 untreat_nX_tr = torch.tensor(untreat_nX_tr, dtype=torch.float32)
@@ -87,12 +89,17 @@ treat_cost_tr = torch.tensor(treat_cost_tr, dtype=torch.float32)
 untreat_cost_tr = torch.tensor(untreat_cost_tr, dtype=torch.float32)
 treat_value_tr = torch.tensor(treat_value_tr, dtype=torch.float32)
 untreat_value_tr = torch.tensor(untreat_value_tr, dtype=torch.float32)
+treat_intensity_tr= torch.tensor(treat_intensity_tr, dtype=torch.float32)
+untreat_intensity_tr= torch.tensor(untreat_intensity_tr, dtype=torch.float32)
+
 treat_nX_va= torch.tensor(treat_nX_va, dtype=torch.float32)
 untreat_nX_va = torch.tensor(untreat_nX_va, dtype=torch.float32)
 treat_cost_va = torch.tensor(treat_cost_va, dtype=torch.float32)
 untreat_cost_va = torch.tensor(untreat_cost_va, dtype=torch.float32)
 treat_value_va = torch.tensor(treat_value_va, dtype=torch.float32)
 untreat_value_va = torch.tensor(untreat_value_va, dtype=torch.float32)
+treat_intensity_va= torch.tensor(treat_intensity_va, dtype=torch.float32)
+untreat_intensity_va= torch.tensor(untreat_intensity_va, dtype=torch.float32)
 
 
 # ----- DRM ----- # 
@@ -104,7 +111,7 @@ drm_model = SimpleTCModelDNN(input_dim= 4, num_hidden= 32)
 h_tre_rnkscore, h_unt_rnkscore = drm_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
 
 # Training
-drm_epochs = 1500
+drm_epochs = 2000
 save_path="model_drm.pth"
 
 drm_obj = optimize_model(model=drm_model, 
@@ -141,7 +148,56 @@ print("drm aucc: ", aucc_drm)
 # mplt_drm.savefig('test_aucc_plot_drm.png')
 
 # CTPM 
+from Model import ctpm
 
+ctpm_model = ctpm.CTPM(D_dim=4, num_hidden=32, temp=0, p_quantile=0, dropout_rate=0.0)
+
+# Training
+drm_epochs = 2000
+save_path="model_ctpm.pth"
+
+ctpm_obj = ctpm.optimize_ctpm_model(model=ctpm_model, 
+                        D_tre=treat_nX_tr, 
+                        D_unt=untreat_nX_tr, 
+                        c_tre=treat_cost_tr, 
+                        c_unt=untreat_cost_tr, 
+                        o_tre=treat_value_tr, 
+                        o_unt=untreat_value_tr,
+                        i_tre=treat_intensity_tr, 
+                        i_unt=untreat_intensity_tr,
+                        epochs=drm_epochs)
+
+torch.save(ctpm_model.state_dict(), save_path)
+print(f"Model saved to {save_path}")
+
+ctpm_model.load_state_dict(torch.load(save_path))
+ctpm_model.eval()
+
+# Prediction
+_, _, _, h_tre_rnkscore_val, h_unt_rnkscore_val = ctpm_model(
+    D_tre=treat_nX_va, 
+    D_unt=untreat_nX_va, 
+    o_tre=treat_value_va, 
+    o_unt=untreat_value_va,
+    c_tre=treat_cost_va,
+    c_unt=untreat_cost_va,
+    i_tre=treat_intensity_va,
+    i_unt=untreat_intensity_va,
+)
+combined_scores = np.zeros_like(w_va, dtype=np.float32)
+combined_scores[val_treat_index] = h_tre_rnkscore_val.detach().numpy().squeeze()
+combined_scores[val_untreat_index] = h_unt_rnkscore_val.detach().numpy().squeeze()
+
+mplt_ctpm, aucc_ctpm, percs_ctpm, cpits_ctpm, cpitcohorts_ctpm = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
+    combined_scores,
+    values_va,
+    w_va,
+    -cost_va,
+    'r',
+)
+
+D_aucc['ctpm'] = aucc_ctpm 
+print("ctpm aucc: ", aucc_ctpm)
 
 """
 # ----- Percentil Barrier Model ----- # 
@@ -367,6 +423,7 @@ mplt_drl.legend(
         "Random",
         "R-Learner",
         "DRM (Direct Ranking Model)",
+        "CTPM",
         #"Percentile Barrier Model",
         # "Percentile Barrier Model Annealing",
         #"Causal Tree",

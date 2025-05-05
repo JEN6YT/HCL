@@ -132,8 +132,8 @@ class CTPM(nn.Module):
         # dd_unt = torch.sum(s_unt * d2d_unt)
 
         # Cost-gain effectiveness
-        cost_diff = soft_abs(dc_tre - dc_unt)
-        order_diff = soft_abs(do_tre - do_unt)
+        cost_diff = dc_tre - dc_unt
+        order_diff = do_tre - do_unt
         # dist_diff = F.leaky_relu(dd_tre - dd_unt)
 
         # Objective
@@ -142,7 +142,7 @@ class CTPM(nn.Module):
 
         return obj, dc_tre - dc_unt, do_tre - do_unt, h_tre_rnkscore, h_unt_rnkscore
     
-def optimize_ctpm_model(model, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, i_tre, i_unt, lr=0.001, epochs = 10):
+def optimize_ctpm_model(model, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, i_tre, i_unt, lr=0.0001, epochs = 10):
     """
     Optimizes the model using the Adam optimizer.
 

@@ -30,6 +30,7 @@ def preprocess_data(user_list_file, coupon_list_file, detail_file):
 
     # get Treatment column
     D['TREATMENT'] = (1 - D['DISCOUNT_PRICE'] / D['CATALOG_PRICE']) * D['ITEM_COUNT']
+    D['TREATMENT'] = D['TREATMENT'] / D['TREATMENT'].max()
     #D['TREATMENT'] = (D['CATALOG_PRICE'] - D['DISCOUNT_PRICE'])*D['ITEM_COUNT']
 
     # 1 - Discount_price / catalog_price
