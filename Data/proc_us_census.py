@@ -15,6 +15,8 @@ def preprocess_data(file_path):
     D = D[D['dAge'] < 5] 
     D = D[D['iCitizen'] == 0] 
 
+    intensity_col = D[cohort_column_name].values
+
     # Median transformation for the cohort column
     w_median = np.median(D[cohort_column_name].values) 
     D[cohort_column_name] = D[cohort_column_name].apply(lambda x: 1.0 if x > w_median else 0.0) 
@@ -84,5 +86,9 @@ def preprocess_data(file_path):
     negcost_va = negcost[len_tr:len_tr + len_va] 
     negcost_te = negcost[len_tr + len_va:] 
 
+    i_tr = intensity_col[:len_tr]
+    i_va = intensity_col[len_tr:len_tr + len_va]
+    i_te = intensity_col[len_tr + len_va:]
+
     # Return the matrices
-    return nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, negcost_tr, negcost_va, negcost_te
+    return nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, negcost_tr, negcost_va, negcost_te, i_tr, i_va, i_te
