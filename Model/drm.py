@@ -71,7 +71,7 @@ def compute_objective(h_tre_rnkscore, h_unt_rnkscore, c_tre, c_unt, o_tre, o_unt
     do_tre = torch.sum(s_tre * o_tre)
     do_unt = torch.sum(s_unt * o_unt)
 
-    #obj = (do_tre - do_unt) / (dc_tre - dc_unt) 
+    # obj = (do_tre - do_unt) / (dc_tre - dc_unt + 1e-9) 
 
     # Optional differentiable version:
     

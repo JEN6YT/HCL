@@ -2,11 +2,12 @@ library(grf)
 library(dplyr) 
 library(data.table) 
 
-num_trees = 5 # 50
+num_trees = 100
 p_alpha = 0.2 #0.2 
-p_min_node_size = 2 #3
+p_min_node_size = 5 #3
 p_sample_fraction = 0.5 #0.5
 num_features = 4 
+mtry = 2
 
 print('reading data from csv') 
 dread <- read.csv(file='/Users/jenniferzhang/Desktop/Research with Will/HCL project/ponpare_tr.csv')
@@ -25,11 +26,11 @@ Y<- matrix(as.vector(t(o)), , 1)
 C<- matrix(as.vector(t(c)), , 1) 
 
 print('fitting causal random forest for trips') 
-tauO.forest <- causal_forest(X, Y, W, num.trees=num_trees, alpha=p_alpha, min.node.size=p_min_node_size, sample.fraction=p_sample_fraction) #tune.parameters=TRUE) #
+tauO.forest <- causal_forest(X, Y, W, num.trees=num_trees, alpha=p_alpha, min.node.size=p_min_node_size, sample.fraction=p_sample_fraction, mtry = mtry, tune.parameters="all") #
 #tauO.forest$tuning.output 
 
 print('fitting causal random forest for cost') 
-tauC.forest <- causal_forest(X, C, W, num.trees=num_trees, alpha=p_alpha, min.node.size=p_min_node_size, sample.fraction=p_sample_fraction) #tune.parameters=TRUE) #
+tauC.forest <- causal_forest(X, C, W, num.trees=num_trees, alpha=p_alpha, min.node.size=p_min_node_size, sample.fraction=p_sample_fraction, mtry = mtry, tune.parameters="all") #
 #tauC.forest$tuning.output 
 
 print('reading test data from csv, data transformations') 

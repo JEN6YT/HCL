@@ -6,9 +6,9 @@ class mlprlearner:
 
     def __init__( 
             self, 
-            p_model_specs={'model': MLPRegressor, 'params': {'hidden_layer_sizes': (92, 1), 'activation': 'tanh', 'max_iter': 1000}},
-            m_model_specs={'model': MLPRegressor, 'params': {'hidden_layer_sizes': (92, 1), 'activation': 'tanh', 'max_iter': 1000}},
-            tau_model_specs={'model': MLPRegressor, 'params': {'hidden_layer_sizes': (92, 1), 'activation': 'tanh', 'max_iter': 1000}},
+            p_model_specs={'model': MLPRegressor, 'params': {'hidden_layer_sizes': (100, 1), 'activation': 'tanh', 'max_iter': 1000}},
+            m_model_specs={'model': MLPRegressor, 'params': {'hidden_layer_sizes': (100, 1), 'activation': 'tanh', 'max_iter': 1000}},
+            tau_model_specs={'model': MLPRegressor, 'params': {'hidden_layer_sizes': (100, 1), 'activation': 'tanh', 'max_iter': 1000}},
             shadow=None,
             k_fold=5,
     ):
