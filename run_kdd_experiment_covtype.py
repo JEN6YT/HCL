@@ -103,207 +103,207 @@ untreat_intensity_va = np.array(untreat_intensity_va, dtype=np.float32)
 treat_intensity_va = torch.tensor(treat_intensity_va, dtype=torch.float32)
 untreat_intensity_va = torch.tensor(untreat_intensity_va, dtype=torch.float32)
 
-# # ----- dual rlearner ----- # 
-# from Model.dual_rlearner_new import DualRLearner
-# drl = DualRLearner()
+# ----- dual rlearner ----- # 
+from Model.dual_rlearner_new import DualRLearner
+drl = DualRLearner()
 
-# """
-# # Selecting best lambda process
+"""
+# Selecting best lambda process
 
-# lambda_list = [0.001, 0.005, 0.01, 0.05]
-# colors = ['b', 'c', 'g', 'y']
-# result = drl.select_lambda(nX_tr, np.reshape(values_tr, [-1, 1]), np.reshape(cost_tr, [-1, 1]),  np.reshape(w_tr, [-1, 1]), lambda_list, nX_va)
-# labels = []
+lambda_list = [0.001, 0.005, 0.01, 0.05]
+colors = ['b', 'c', 'g', 'y']
+result = drl.select_lambda(nX_tr, np.reshape(values_tr, [-1, 1]), np.reshape(cost_tr, [-1, 1]),  np.reshape(w_tr, [-1, 1]), lambda_list, nX_va)
+labels = []
 
-# for i in range(len(result)):
-#     mplt_drl, aucc_drl, percs_drl, cpits_drl, cpitcohorts_drl = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
-#         result[i],
-#         values_va,
-#         w_va,
-#         cost_va,
-#         colors[i],
-#     )
-#     labels.append('lamd = ' + str(lambda_list[i]))
+for i in range(len(result)):
+    mplt_drl, aucc_drl, percs_drl, cpits_drl, cpitcohorts_drl = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
+        result[i],
+        values_va,
+        w_va,
+        cost_va,
+        colors[i],
+    )
+    labels.append('lamd = ' + str(lambda_list[i]))
 
-# mplt_drl.legend(
-#     labels=labels,
-#     loc="upper right",  # Specify location of legend
-#     fontsize=10
-# )
-# # mplt_drl.savefig('selecting_lambda_dualrlearner_us.png')
-# """
+mplt_drl.legend(
+    labels=labels,
+    loc="upper right",  # Specify location of legend
+    fontsize=10
+)
+# mplt_drl.savefig('selecting_lambda_dualrlearner_us.png')
+"""
 
 
-# lmda = 0.05 #0.00000005
+lmda = 0.05 #0.00000005
 
-# # for covertype
-# # fitting_drl = drl.fit_dual(nX_tr, np.reshape(values_tr, [-1, 1]), np.reshape(cost_tr, [-1, 1]),  np.reshape(w_tr, [-1, 1]), lmda)
-# # for us census
-# fitting_drl = drl.fit_dual(nX_tr, np.reshape(values_tr, [-1, 1]), - np.reshape(cost_tr, [-1, 1]),  np.reshape(w_tr, [-1, 1]), lmda)
-# predicted_drl = fitting_drl.predict(nX_va)
+# for covertype
+# fitting_drl = drl.fit_dual(nX_tr, np.reshape(values_tr, [-1, 1]), np.reshape(cost_tr, [-1, 1]),  np.reshape(w_tr, [-1, 1]), lmda)
+# for us census
+fitting_drl = drl.fit_dual(nX_tr, np.reshape(values_tr, [-1, 1]), - np.reshape(cost_tr, [-1, 1]),  np.reshape(w_tr, [-1, 1]), lmda)
+predicted_drl = fitting_drl.predict(nX_va)
 
-# mplt_drl, aucc_drl, percs_drl, cpits_drl, cpitcohorts_drl = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
-#     predicted_drl,
-#     values_va,
-#     w_va,
-#     cost_va,
-#     'b',
-# )
+mplt_drl, aucc_drl, percs_drl, cpits_drl, cpitcohorts_drl = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
+    predicted_drl,
+    values_va,
+    w_va,
+    cost_va,
+    'b',
+)
 
-# # mplt_drl.savefig('dual_r.png')
-# D_aucc['duality_rlearer'] = aucc_drl 
-# print("duality aucc: ", aucc_drl)
+# mplt_drl.savefig('dual_r.png')
+D_aucc['duality_rlearer'] = aucc_drl 
+print("duality aucc: ", aucc_drl)
 
-# # ----- Causal Tree ----- # 
+# ----- Causal Tree ----- # 
 
-# file_path_o = "results_covtype/causal_forest_grf_test_set_results_O_numtrees60_alpha0.2_min_node_size4_sample_fraction0.5.csv"
+file_path_o = "results_covtype/causal_forest_grf_test_set_results_O_numtrees60_alpha0.2_min_node_size4_sample_fraction0.5.csv"
+file_path_c = "results_covtype/causal_forest_grf_test_set_results_C_numtrees60_alpha0.2_min_node_size4_sample_fraction0.5.csv"
+
+predicted_o = pd.read_csv(file_path_o)
+predicted_o = predicted_o.transpose()
+# Remove the header row by resetting the index and dropping the first row
+predicted_o = predicted_o.iloc[1:].reset_index(drop=True)
+predicted_o = predicted_o.to_numpy()
+predicted_o = predicted_o.astype(float)
+# Flatten the DataFrame to convert it into a Series
+# predicted_o = predicted_o.squeeze()
+
 # file_path_c = "results_covtype/causal_forest_grf_test_set_results_C_numtrees60_alpha0.2_min_node_size4_sample_fraction0.5.csv"
+predicted_c = pd.read_csv(file_path_c)
+predicted_c = predicted_c.transpose()
+predicted_c = predicted_c.iloc[1:].reset_index(drop=True)
+predicted_c = predicted_c.to_numpy()
+predicted_c = predicted_c.astype(float)
+# print(predicted_c)
+# print(predicted_c.dtype)
 
-# predicted_o = pd.read_csv(file_path_o)
-# predicted_o = predicted_o.transpose()
-# # Remove the header row by resetting the index and dropping the first row
-# predicted_o = predicted_o.iloc[1:].reset_index(drop=True)
-# predicted_o = predicted_o.to_numpy()
-# predicted_o = predicted_o.astype(float)
-# # Flatten the DataFrame to convert it into a Series
-# # predicted_o = predicted_o.squeeze()
-
-# # file_path_c = "results_covtype/causal_forest_grf_test_set_results_C_numtrees60_alpha0.2_min_node_size4_sample_fraction0.5.csv"
-# predicted_c = pd.read_csv(file_path_c)
-# predicted_c = predicted_c.transpose()
-# predicted_c = predicted_c.iloc[1:].reset_index(drop=True)
-# predicted_c = predicted_c.to_numpy()
-# predicted_c = predicted_c.astype(float)
-# # print(predicted_c)
-# # print(predicted_c.dtype)
-
-# mplt_ct, aucc_ct, percs_ct, cpits_ct, cpitcohorts_ct = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
-#     F.relu(torch.from_numpy(predicted_o))/(F.relu(torch.from_numpy(predicted_c))+1e-5),
-#     values_va,
-#     w_va,
-#     cost_va,
-#     'g',
-# )
-# print("causal tree aucc: ", aucc_ct)
-# D_aucc['causal tree'] = aucc_ct
+mplt_ct, aucc_ct, percs_ct, cpits_ct, cpitcohorts_ct = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
+    F.relu(torch.from_numpy(predicted_o))/(F.relu(torch.from_numpy(predicted_c))+1e-5),
+    values_va,
+    w_va,
+    cost_va,
+    'g',
+)
+print("causal tree aucc: ", aucc_ct)
+D_aucc['causal tree'] = aucc_ct
 
 
-# # ----- Percentil Barrier Model ----- # 
+# ----- Percentil Barrier Model ----- # 
 
-# from Model.percentile_barrier import *
+from Model.percentile_barrier import *
 
-# p_quantile = torch.tensor(0.4, dtype=torch.float32)
-# initial_temperature = torch.tensor(3, dtype=torch.float32)
+p_quantile = torch.tensor(0.4, dtype=torch.float32)
+initial_temperature = torch.tensor(3, dtype=torch.float32)
 
-# pb_model = percentile_barrier_model(input_dim=INPUT_DIM, hidden_dim=HIDDEN_DIM, initial_temp=initial_temperature, p_quantile=p_quantile)
+pb_model = percentile_barrier_model(input_dim=INPUT_DIM, hidden_dim=HIDDEN_DIM, initial_temp=initial_temperature, p_quantile=p_quantile)
 
-# h_tre_rnkscore_pb, h_unt_rnkscore_pb  = pb_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
+h_tre_rnkscore_pb, h_unt_rnkscore_pb  = pb_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
 
-# # Training
-# save_path_pb="model_pb.pth"
+# Training
+save_path_pb="model_pb.pth"
 
-# pb_epochs = 1500
+pb_epochs = 1500
 
-# pb_obj = optimize_model_pb(model=pb_model, 
-#                             D_tre=treat_nX_tr, 
-#                             D_unt=untreat_nX_tr, 
-#                             c_tre=treat_cost_tr, 
-#                             c_unt=untreat_cost_tr, 
-#                             o_tre=treat_value_tr, 
-#                             o_unt=untreat_value_tr,
-#                             epochs=pb_epochs)
+pb_obj = optimize_model_pb(model=pb_model, 
+                            D_tre=treat_nX_tr, 
+                            D_unt=untreat_nX_tr, 
+                            c_tre=treat_cost_tr, 
+                            c_unt=untreat_cost_tr, 
+                            o_tre=treat_value_tr, 
+                            o_unt=untreat_value_tr,
+                            epochs=pb_epochs)
     
-# torch.save(pb_model.state_dict(), save_path_pb)
-# print(f"Model saved to {save_path_pb}")
+torch.save(pb_model.state_dict(), save_path_pb)
+print(f"Model saved to {save_path_pb}")
 
-# pb_model.load_state_dict(torch.load("model_pb.pth"))
-# pb_model.eval()
+pb_model.load_state_dict(torch.load("model_pb.pth"))
+pb_model.eval()
 
-# # Prediction
-# h_tre_rnkscore_val_pb, h_unt_rnkscore_val_pb = pb_model(D_tre=treat_nX_va, D_unt=untreat_nX_va)
-# combined_scores_pb = np.zeros_like(w_va, dtype=np.float32)
-# combined_scores_pb[val_treat_index] = h_tre_rnkscore_val_pb.detach().numpy().squeeze()
-# combined_scores_pb[val_untreat_index] = h_unt_rnkscore_val_pb.detach().numpy().squeeze()
+# Prediction
+h_tre_rnkscore_val_pb, h_unt_rnkscore_val_pb = pb_model(D_tre=treat_nX_va, D_unt=untreat_nX_va)
+combined_scores_pb = np.zeros_like(w_va, dtype=np.float32)
+combined_scores_pb[val_treat_index] = h_tre_rnkscore_val_pb.detach().numpy().squeeze()
+combined_scores_pb[val_untreat_index] = h_unt_rnkscore_val_pb.detach().numpy().squeeze()
 
-# mplt_pb, aucc_pb, percs_pb, cpits_pb, cpitcohorts_pb = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
-#     combined_scores_pb,
+mplt_pb, aucc_pb, percs_pb, cpits_pb, cpitcohorts_pb = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
+    combined_scores_pb,
+    values_va,
+    w_va,
+    cost_va,
+    'r',
+)
+print("percentile barrier aucc: ", aucc_pb)
+D_aucc['percentile barrier'] = aucc_pb
+
+
+# # ----- rlearner 2layer mlp ----- # 
+# from Model.rlearner_mlp import mlprlearner
+
+# rlearnermodel = mlprlearner()
+# z = np.zeros([len(values_tr), 1])
+# o = np.concatenate((np.reshape(values_tr, [-1, 1]), z), axis=1) 
+# o = np.concatenate((o, np.reshape(w_tr, [-1, 1])), axis=1)
+# rlearnermodel.fit(nX_tr, o)
+# predicted_rlearner_mlp = rlearnermodel.predict(nX_va)
+
+# mplt_mlp, aucc_mlp, percs_mlp, cpits_mlp, cpitcohorts_mlp = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
+#     predicted_rlearner_mlp,
 #     values_va,
 #     w_va,
 #     cost_va,
-#     'r',
-# )
-# print("percentile barrier aucc: ", aucc_pb)
-# D_aucc['percentile barrier'] = aucc_pb
-
-
-# # # ----- rlearner 2layer mlp ----- # 
-# # from Model.rlearner_mlp import mlprlearner
-
-# # rlearnermodel = mlprlearner()
-# # z = np.zeros([len(values_tr), 1])
-# # o = np.concatenate((np.reshape(values_tr, [-1, 1]), z), axis=1) 
-# # o = np.concatenate((o, np.reshape(w_tr, [-1, 1])), axis=1)
-# # rlearnermodel.fit(nX_tr, o)
-# # predicted_rlearner_mlp = rlearnermodel.predict(nX_va)
-
-# # mplt_mlp, aucc_mlp, percs_mlp, cpits_mlp, cpitcohorts_mlp = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
-# #     predicted_rlearner_mlp,
-# #     values_va,
-# #     w_va,
-# #     cost_va,
-# #     'y',
-# # )
-
-# # D_aucc['rlearner mlp'] = aucc_mlp 
-# # # mplt_drl.savefig('rlearner_mlp.png')
-# # print("rlearner mlp aucc: ", aucc_drl)
-
-
-
-# # ----- DRM ----- # 
-
-# from Model.drm import *
-
-# drm_model = SimpleTCModelDNN(input_dim= INPUT_DIM, num_hidden= HIDDEN_DIM)
-
-# h_tre_rnkscore, h_unt_rnkscore = drm_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
-
-# # Training
-# drm_epochs = 1500
-# save_path="model_drm.pth"
-
-# drm_obj = optimize_model(model=drm_model, 
-#                         D_tre=treat_nX_tr, 
-#                         D_unt=untreat_nX_tr, 
-#                         c_tre=treat_cost_tr, 
-#                         c_unt=untreat_cost_tr, 
-#                         o_tre=treat_value_tr, 
-#                         o_unt=untreat_value_tr,
-#                         epochs=drm_epochs)
-
-# torch.save(drm_model.state_dict(), save_path)
-# print(f"Model saved to {save_path}")
-
-# drm_model.load_state_dict(torch.load("model_drm.pth"))
-# drm_model.eval()
-
-# # Prediction
-# h_tre_rnkscore_val, h_unt_rnkscore_val = drm_model(D_tre=treat_nX_va, D_unt=untreat_nX_va)
-# combined_scores = np.zeros_like(w_va, dtype=np.float32)
-# combined_scores[val_treat_index] = h_tre_rnkscore_val.detach().numpy().squeeze()
-# combined_scores[val_untreat_index] = h_unt_rnkscore_val.detach().numpy().squeeze()
-
-# mplt_drm, aucc_drm, percs_drm, cpits_drm, cpitcohorts_drm = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
-#     combined_scores,
-#     values_va,
-#     w_va,
-#     cost_va,
-#     'm',
+#     'y',
 # )
 
-# D_aucc['drm'] = aucc_drm 
-# print("drm aucc: ", aucc_drm)
-# # mplt_drm.savefig('test_aucc_plot_drm.png')
+# D_aucc['rlearner mlp'] = aucc_mlp 
+# # mplt_drl.savefig('rlearner_mlp.png')
+# print("rlearner mlp aucc: ", aucc_drl)
+
+
+
+# ----- DRM ----- # 
+
+from Model.drm import *
+
+drm_model = SimpleTCModelDNN(input_dim= INPUT_DIM, num_hidden= HIDDEN_DIM)
+
+h_tre_rnkscore, h_unt_rnkscore = drm_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
+
+# Training
+drm_epochs = 1500
+save_path="model_drm.pth"
+
+drm_obj = optimize_model(model=drm_model, 
+                        D_tre=treat_nX_tr, 
+                        D_unt=untreat_nX_tr, 
+                        c_tre=treat_cost_tr, 
+                        c_unt=untreat_cost_tr, 
+                        o_tre=treat_value_tr, 
+                        o_unt=untreat_value_tr,
+                        epochs=drm_epochs)
+
+torch.save(drm_model.state_dict(), save_path)
+print(f"Model saved to {save_path}")
+
+drm_model.load_state_dict(torch.load("model_drm.pth"))
+drm_model.eval()
+
+# Prediction
+h_tre_rnkscore_val, h_unt_rnkscore_val = drm_model(D_tre=treat_nX_va, D_unt=untreat_nX_va)
+combined_scores = np.zeros_like(w_va, dtype=np.float32)
+combined_scores[val_treat_index] = h_tre_rnkscore_val.detach().numpy().squeeze()
+combined_scores[val_untreat_index] = h_unt_rnkscore_val.detach().numpy().squeeze()
+
+mplt_drm, aucc_drm, percs_drm, cpits_drm, cpitcohorts_drm = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
+    combined_scores,
+    values_va,
+    w_va,
+    cost_va,
+    'm',
+)
+
+D_aucc['drm'] = aucc_drm 
+print("drm aucc: ", aucc_drm)
+# mplt_drm.savefig('test_aucc_plot_drm.png')
 
 # ----- Continuous Treatment Model ----- #
 
@@ -377,6 +377,6 @@ mplt_ctpm.legend(
     fontsize=8
 )
 
-mplt_drl.savefig('covtype_graph.png')
+mplt_ctpm.savefig('covtype_graph.png')
 
 print(D_aucc)
