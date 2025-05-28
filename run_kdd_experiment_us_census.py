@@ -149,109 +149,6 @@ mplt_drl, aucc_drl, percs_drl, cpits_drl, cpitcohorts_drl = ex.AUC_cpit_cost_cur
 D_aucc['duality_rlearer'] = aucc_drl 
 print("duality aucc: ", aucc_drl)
 
-# ----- Causal Tree ----- # 
-file_path_o = "results_uscensus/causal_forest_grf_test_set_results_O_numtrees50_alpha0.2_min_node_size3_sample_fraction0.5.csv"
-file_path_c = "results_uscensus/causal_forest_grf_test_set_results_C_numtrees50_alpha0.2_min_node_size3_sample_fraction0.5.csv"
-predicted_o = pd.read_csv(file_path_o)
-predicted_o = predicted_o.transpose()
-# Remove the header row by resetting the index and dropping the first row
-predicted_o = predicted_o.iloc[1:].reset_index(drop=True)
-predicted_o = predicted_o.to_numpy()
-predicted_o = predicted_o.astype(float)
-# Flatten the DataFrame to convert it into a Series
-# predicted_o = predicted_o.squeeze()
-
-# file_path_c = "results_covtype/causal_forest_grf_test_set_results_C_numtrees60_alpha0.2_min_node_size4_sample_fraction0.5.csv"
-predicted_c = pd.read_csv(file_path_c)
-predicted_c = predicted_c.transpose()
-predicted_c = predicted_c.iloc[1:].reset_index(drop=True)
-predicted_c = predicted_c.to_numpy()
-predicted_c = predicted_c.astype(float)
-# print(predicted_c)
-# print(predicted_c.dtype)
-
-mplt_ct, aucc_ct, percs_ct, cpits_ct, cpitcohorts_ct = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
-    F.relu(torch.from_numpy(predicted_o))/(F.relu(torch.from_numpy(predicted_c))+1e-5),
-    values_va,
-    w_va,
-    cost_va,
-    'g',
-)
-print("causal tree aucc: ", aucc_ct)
-D_aucc['causal tree'] = aucc_ct
-
-# ----- Percentil Barrier Model ----- # 
-
-from Model.percentile_barrier import *
-
-p_quantile = torch.tensor(0.4, dtype=torch.float32)
-initial_temperature = torch.tensor(3, dtype=torch.float32)
-
-pb_model = percentile_barrier_model(input_dim=46, hidden_dim=92, initial_temp=initial_temperature, p_quantile=p_quantile)
-
-h_tre_rnkscore_pb, h_unt_rnkscore_pb  = pb_model.forward(D_tre=treat_nX_tr, D_unt=untreat_nX_tr)
-
-# Training
-save_path_pb="model_pb.pth"
-
-pb_epochs = 1500
-
-pb_obj = optimize_model_pb(model=pb_model, 
-                            D_tre=treat_nX_tr, 
-                            D_unt=untreat_nX_tr, 
-                            c_tre=treat_cost_tr, 
-                            c_unt=untreat_cost_tr, 
-                            o_tre=treat_value_tr, 
-                            o_unt=untreat_value_tr,
-                            epochs=pb_epochs)
-    
-torch.save(pb_model.state_dict(), save_path_pb)
-print(f"Model saved to {save_path_pb}")
-
-pb_model.load_state_dict(torch.load("model_pb.pth"))
-pb_model.eval()
-
-# Prediction
-h_tre_rnkscore_val_pb, h_unt_rnkscore_val_pb = pb_model(D_tre=treat_nX_va, D_unt=untreat_nX_va)
-combined_scores_pb = np.zeros_like(w_va, dtype=np.float32)
-combined_scores_pb[val_treat_index] = h_tre_rnkscore_val_pb.detach().numpy().squeeze()
-combined_scores_pb[val_untreat_index] = h_unt_rnkscore_val_pb.detach().numpy().squeeze()
-
-mplt_pb, aucc_pb, percs_pb, cpits_pb, cpitcohorts_pb = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
-    combined_scores_pb,
-    values_va,
-    w_va,
-    cost_va,
-    'r',
-)
-print("percentile barrier aucc: ", aucc_pb)
-D_aucc['percentile barrier'] = aucc_pb
-
-# mplt_pb.savefig('test_aucc_plot_pb.png')
-
-
-# ----- rlearner 2layer mlp ----- # 
-from Model.rlearner_mlp import mlprlearner
-
-rlearnermodel = mlprlearner()
-z = np.zeros([len(values_tr), 1])
-o = np.concatenate((np.reshape(values_tr, [-1, 1]), z), axis=1) 
-o = np.concatenate((o, np.reshape(w_tr, [-1, 1])), axis=1)
-rlearnermodel.fit(nX_tr, o)
-predicted_rlearner_mlp = rlearnermodel.predict(nX_va)
-
-mplt_mlp, aucc_mlp, percs_mlp, cpits_mlp, cpitcohorts_mlp = ex.AUC_cpit_cost_curve_deciles_cohort_vis(
-    predicted_rlearner_mlp,
-    values_va,
-    w_va,
-    cost_va,
-    'y',
-)
-
-D_aucc['rlearner mlp'] = aucc_mlp 
-# mplt_drl.savefig('rlearner_mlp.png')
-print("rlearner mlp aucc: ", aucc_drl)
-
 # ----- DRM ----- # 
 
 from Model.drm import *
@@ -346,7 +243,7 @@ mplt_ctpm, aucc_ctpm, percs_ctpm, cpits_ctpm, cpitcohorts_ctpm = ex.AUC_cpit_cos
     values_va,
     w_va,
     cost_va,
-    'purple',
+    'r',
 )
 
 # D_aucc['ctpm'] = aucc_ctpm 
@@ -358,11 +255,7 @@ mplt_ctpm.legend(
         "Random",
         "R-Learner",
         "Duality R-Learner",
-        "Causal Forest",
-        "Constraint Ranking Model",
-        "R-Learner 2 Layer MLP",
         "Direct Ranking Model",
-        # "Percentile Barrier Model Annealing",
         "CTPM",
     ],
     loc="lower right",  # Specify location of legend
