@@ -138,8 +138,8 @@ class CTPM(nn.Module):
 
         # Objective
         # obj = order_diff / (cost_diff + 1e-9) + d2dlamb * dist_diff
-        # obj = order_diff / (cost_diff + 1e-9)
-        obj = soft_abs(order_diff) / (soft_abs(cost_diff) + 1e-10)
+        obj = order_diff / (cost_diff + 1e-9)
+        # obj = soft_abs(order_diff) / (soft_abs(cost_diff) + 1e-10)
 
         return obj, dc_tre - dc_unt, do_tre - do_unt, h_tre_rnkscore, h_unt_rnkscore
     

@@ -75,8 +75,8 @@ def compute_objective(h_tre_rnkscore, h_unt_rnkscore, c_tre, c_unt, o_tre, o_unt
 
     # Optional differentiable version:
     
-    # obj = (do_tre - do_unt) / ((dc_tre - dc_unt) + 1e-10)
-    obj = soft_abs(do_tre - do_unt) / (soft_abs(dc_tre - dc_unt) +  1e-10)
+    obj = (do_tre - do_unt) / ((dc_tre - dc_unt) + 1e-10)
+    # obj = soft_abs(do_tre - do_unt) / (soft_abs(dc_tre - dc_unt) +  1e-10)
     return obj, dc_tre - dc_unt, do_tre - do_unt
 
 
