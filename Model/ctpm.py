@@ -202,7 +202,7 @@ class CTPM(nn.Module):
 
         return obj, dc_tre - dc_unt, do_tre - do_unt, h_tre_rnkscore, h_unt_rnkscore
     
-def optimize_ctpm_model(model, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, i_tre, i_unt, lr=0.0001, epochs = 10):
+def optimize_ctpm_model(model, Da_tre, Da_unt, Db_tre, Db_unt, c_tre, c_unt, o_tre, o_unt, i_tre, i_unt, lr=0.0001, epochs = 10):
     """
     Optimizes the model using the Adam optimizer.
 
@@ -225,7 +225,7 @@ def optimize_ctpm_model(model, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, i_tre, 
     optimizer.zero_grad()
 
     for epoch in range(epochs):
-        obj, a, b, _, _ = model(D_tre, D_unt, o_tre, o_unt, c_tre, c_unt, i_tre, i_unt)
+        obj, a, b, _, _ = model(Da_tre, Da_unt, Db_tre, Db_unt, o_tre, o_unt, c_tre, c_unt, i_tre, i_unt)
         (-obj).backward()  # Negative objective for maximization
         optimizer.step()
 
