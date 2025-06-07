@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import Adam 
+from torch.utils.data import DataLoader, TensorDataset
 
 def soft_abs(x, beta=40.0):
     return torch.log(1 + torch.exp(beta * x)) + torch.log(1 + torch.exp(-beta * x)) / beta
@@ -140,8 +141,8 @@ class CTPM(nn.Module):
         diff_unt = i_unt.squeeze() - unt_policy_score.squeeze()
 
         if self.eval():
-            diff_tre = torch.zero_like(diff_tre)
-            diff_unt = torch.zero_like(diff_unt)
+            diff_tre = torch.zeros_like(diff_tre)
+            diff_unt = torch.zeros_like(diff_unt)
         # derivative of sigmoid has a bell-shape curve
         # it peaks at diff = 0
         # decreases symmetrically as diff moves away from 0
@@ -197,12 +198,13 @@ class CTPM(nn.Module):
 
         # Objective
         # obj = order_diff / (cost_diff + 1e-9) + d2dlamb * dist_diff
-        obj = order_diff / (cost_diff + 1e-9)
+        # obj = order_diff / (cost_diff + 1e-9)
         # obj = soft_abs(order_diff) / (soft_abs(cost_diff) + 1e-10)
+        obj = order_diff
 
         return obj, dc_tre - dc_unt, do_tre - do_unt, h_tre_rnkscore, h_unt_rnkscore
     
-def optimize_ctpm_model(model, Da_tre, Da_unt, Db_tre, Db_unt, c_tre, c_unt, o_tre, o_unt, i_tre, i_unt, lr=0.0001, epochs = 10):
+def optimize_ctpm_model(model, Da_tre, Da_unt, Db_tre, Db_unt, c_tre, c_unt, o_tre, o_unt, i_tre, i_unt, batch_size = 8000, lr=0.0001, epochs = 10):
     """
     Optimizes the model using the Adam optimizer.
 
@@ -224,12 +226,24 @@ def optimize_ctpm_model(model, Da_tre, Da_unt, Db_tre, Db_unt, c_tre, c_unt, o_t
     optimizer = Adam(model.parameters(), lr=lr)
     optimizer.zero_grad()
 
-    for epoch in range(epochs):
-        obj, a, b, _, _ = model(Da_tre, Da_unt, Db_tre, Db_unt, o_tre, o_unt, c_tre, c_unt, i_tre, i_unt)
-        (-obj).backward()  # Negative objective for maximization
-        optimizer.step()
+    # Dataset
+    tre_dataset = TensorDataset(Da_tre, Db_tre, o_tre, c_tre, i_tre)
+    unt_dataset = TensorDataset(Da_unt, Db_unt, o_unt, c_unt, i_unt)
 
-        print(f"Epoch {epoch}/{epoch}, Objective: {obj.item()}, tau_C: {a.item()}, tau_O: {b.item()}")
+    tre_loader = DataLoader(tre_dataset, batch_size=batch_size, shuffle=True)
+    unt_loader = DataLoader(unt_dataset, batch_size=batch_size, shuffle=True)
+
+    for epoch in range(epochs):
+        total_obj = 0.0
+        for tre_batch, unt_batch in zip(tre_loader, unt_loader):
+            Da_tre, Db_tre, o_tre, c_tre, i_tre = tre_batch
+            Da_unt, Db_unt, o_unt, c_unt, i_unt = unt_batch
+            obj, a, b, _, _ = model(Da_tre, Da_unt, Db_tre, Db_unt, o_tre, o_unt, c_tre, c_unt, i_tre, i_unt)
+            (-obj).backward()  # Negative objective for maximization
+            optimizer.step()
+            total_obj += obj.item()
+
+        print(f"Epoch {epoch}/{epoch}, Objective: {total_obj}")
     return obj
 
 # we use policy network to compute bell shape which later is used to compute p on top of the match network that produces p
