@@ -1,4 +1,4 @@
-from model_dragennet import DragonNet
+from revenue_uplift.dragonnets.dragonnet import DragonNet
 import pandas as pd
 import numpy as np
 import scipy
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     if not os.path.isdir(path):
         os.makedirs(path)
 
-
+    """
     train_df =  pd.read_pickle(road + '/dt_binary_men_tv_train.pkl')
     test_df =  pd.read_pickle(road + '/dt_binary_men_test.pkl')
     
@@ -51,7 +51,21 @@ if __name__ == '__main__':
     X_test = test_df[in_features].values.astype(float)
     y_test = test_df[label_feature].values.astype(float)
     t_test = test_df[treatment_feature].values.astype(float)
-    
+    """
+    folder = '/home/ubuntu/code/HCL/Data/coupon-purchase-prediction/'
+    nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te, i_tr, i_va, i_te = processing_data(
+        user_list_file = folder + 'user_list.csv',
+        coupon_list_file = folder + 'coupon_list_train.csv',
+        detail_file = folder + 'coupon_detail_train.csv'
+    )
+    X_train = nX_tr
+    y_train = values_tr 
+    t_train = w_tr 
+
+    X_test = nX_te 
+    y_test = values_te 
+    t_test = w_te 
+
     model = DragonNet(X_train.shape[1], ranking_lambda, epochs=11) #10
     model.fit(X_train, y_train, t_train)
     y0_pred, y1_pred, t_pred, _ = model.predict(X_test)

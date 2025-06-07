@@ -16,7 +16,7 @@ D_aucc = dict()
 # values: dIncome1 (reward)
 # cost: iFertil (positive cost)
 
-folder = '/Users/jenniferzhang/Desktop/Research with Will/HCL project/ponpare_data/'
+folder = '/home/ubuntu/code/HCL/Data/coupon-purchase-prediction/'
 nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te, i_tr, i_va, i_te = processing_data(
     user_list_file = folder + 'user_list.csv',
     coupon_list_file = folder + 'coupon_list_train.csv',
