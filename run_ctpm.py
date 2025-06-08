@@ -38,6 +38,7 @@ if __name__ == '__main__':
         detail_file = folder + 'coupon_detail_train.csv'
     )
 
+
     train_treat_index = np.where(w_tr==1)[0]
     train_untreat_index = np.where(w_tr==0)[0]
     treat_nX_tr = nX_tr[train_treat_index]
@@ -51,18 +52,18 @@ if __name__ == '__main__':
     treat_intensity_tr= i_tr[train_treat_index]
     untreat_intensity_tr = i_tr[train_untreat_index]
 
-    val_treat_index = np.where(w_va==1)[0]
-    val_untreat_index = np.where(w_va==0)[0]
-    treat_nX_va= nX_va[val_treat_index]
-    untreat_nX_va = nX_va[val_untreat_index]
-    treat_nXc_va = nXc_va[val_treat_index]
-    untreat_nXc_va = nXc_va[val_untreat_index]
-    treat_cost_va = cost_va[val_treat_index]
-    untreat_cost_va = cost_va[val_untreat_index]
-    treat_value_va = values_va[val_treat_index]
-    untreat_value_va = values_va[val_untreat_index]
-    treat_intensity_va = i_va[val_treat_index]
-    untreat_intensity_va = i_va[val_untreat_index]
+    te_treat_index = np.where(w_te==1)[0]
+    te_untreat_index = np.where(w_te==0)[0]
+    treat_nX_te= nX_te[te_treat_index]
+    untreat_nX_te = nX_te[te_untreat_index]
+    treat_nXc_te = nXc_te[te_treat_index]
+    untreat_nXc_te = nXc_te[te_untreat_index]
+    treat_cost_te = cost_te[te_treat_index]
+    untreat_cost_te = cost_te[te_untreat_index]
+    treat_value_te = values_te[te_treat_index]
+    untreat_value_te = values_te[te_untreat_index]
+    treat_intensity_te = i_te[te_treat_index]
+    untreat_intensity_te = i_te[te_untreat_index]
 
     treat_nX_tr = torch.tensor(treat_nX_tr, dtype=torch.float32)
     untreat_nX_tr = torch.tensor(untreat_nX_tr, dtype=torch.float32)
@@ -75,16 +76,16 @@ if __name__ == '__main__':
     treat_intensity_tr= torch.tensor(treat_intensity_tr, dtype=torch.float32)
     untreat_intensity_tr= torch.tensor(untreat_intensity_tr, dtype=torch.float32)
 
-    treat_nX_va= torch.tensor(treat_nX_va, dtype=torch.float32)
-    untreat_nX_va = torch.tensor(untreat_nX_va, dtype=torch.float32)
-    treat_nXc_va = torch.tensor(treat_nXc_va, dtype=torch.float32)
-    untreat_nXc_va = torch.tensor(untreat_nXc_va, dtype=torch.float32)
-    treat_cost_va = torch.tensor(treat_cost_va, dtype=torch.float32)
-    untreat_cost_va = torch.tensor(untreat_cost_va, dtype=torch.float32)
-    treat_value_va = torch.tensor(treat_value_va, dtype=torch.float32)
-    untreat_value_va = torch.tensor(untreat_value_va, dtype=torch.float32)
-    treat_intensity_va= torch.tensor(treat_intensity_va, dtype=torch.float32)
-    untreat_intensity_va= torch.tensor(untreat_intensity_va, dtype=torch.float32)
+    treat_nX_te= torch.tensor(treat_nX_te, dtype=torch.float32)
+    untreat_nX_te = torch.tensor(untreat_nX_te, dtype=torch.float32)
+    treat_nXc_te = torch.tensor(treat_nXc_te, dtype=torch.float32)
+    untreat_nXc_te = torch.tensor(untreat_nXc_te, dtype=torch.float32)
+    treat_cost_te = torch.tensor(treat_cost_te, dtype=torch.float32)
+    untreat_cost_te = torch.tensor(untreat_cost_te, dtype=torch.float32)
+    treat_value_te = torch.tensor(treat_value_te, dtype=torch.float32)
+    untreat_value_te = torch.tensor(untreat_value_te, dtype=torch.float32)
+    treat_intensity_te= torch.tensor(treat_intensity_te, dtype=torch.float32)
+    untreat_intensity_te= torch.tensor(untreat_intensity_te, dtype=torch.float32)
     # X_train = nX_tr
     # y_train = values_tr 
     # t_train = w_tr 
@@ -117,26 +118,26 @@ if __name__ == '__main__':
     ctpm_model.load_state_dict(torch.load(save_path))
     ctpm_model.eval()
 
-    _, _, result, _, _ = ctpm_model(
-        Da_tre=treat_nX_tr,
-        Da_unt=untreat_nX_tr,
-        Db_tre=treat_nXc_tr,
-        Db_unt=untreat_nXc_tr,
-        o_tre=treat_value_va, 
-        o_unt=untreat_value_va,
-        c_tre=treat_cost_va,
-        c_unt=untreat_cost_va,
-        i_tre=treat_intensity_va,
-        i_unt=untreat_intensity_va,
+    _, result_tre, result_unt = ctpm_model(
+        Da_tre=treat_nX_te,
+        Da_unt=untreat_nX_te,
+        Db_tre=treat_nXc_te,
+        Db_unt=untreat_nXc_te,
+        o_tre=treat_value_te, 
+        o_unt=untreat_value_te,
+        c_tre=treat_cost_te,
+        c_unt=untreat_cost_te,
+        i_tre=treat_intensity_te,
+        i_unt=untreat_intensity_te,
     )
 
     label_feature = ['spend']
     treatment_feature = ['CASE']
     test_df = pd.DataFrame(
         {
-            'spend': np.squeeze(values_te), 
-            'CASE' : np.squeeze(w_te),
-            'target_dif': np.squeeze(result), 
+            'spend': np.squeeze(torch.cat((treat_value_te, untreat_value_te), dim=0)), 
+            'CASE' : np.squeeze(torch.cat((torch.ones_like(treat_value_te), torch.zeros_like(untreat_value_te)), dim=0)),
+            'target_dif': np.squeeze(torch.cat((result_tre, result_unt), dim=0)), 
         }
     )
 
