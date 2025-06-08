@@ -2,8 +2,6 @@ import pandas as pd
 import numpy as np
 import pickle as pkl
 
-import pdb
-
 def processing_data(user_list_file, coupon_list_file, detail_file):
     # Read the dataset
     user_pd = pd.read_csv(user_list_file) 
@@ -15,7 +13,7 @@ def processing_data(user_list_file, coupon_list_file, detail_file):
     D = D.drop_duplicates(subset=['USER_ID_hash', 'COUPON_ID_hash'], keep='first')
 
     # Data cleaning and filtering
-    D = D[['REG_DATE','SEX_ID','AGE','PREF_NAME', 'ITEM_COUNT', 'CATALOG_PRICE','DISCOUNT_PRICE','COUPON_ID_hash','USER_ID_hash']]
+    D = D[['REG_DATE','SEX_ID','AGE','PREF_NAME', 'ITEM_COUNT', 'CATALOG_PRICE','DISCOUNT_PRICE','COUPON_ID_hash','USER_ID_hash']+['CAPSULE_TEXT','GENRE_NAME','DISPPERIOD','VALIDPERIOD','USABLE_DATE_MON','USABLE_DATE_TUE','USABLE_DATE_WED','USABLE_DATE_THU','USABLE_DATE_FRI','USABLE_DATE_SAT','USABLE_DATE_SUN','USABLE_DATE_HOLIDAY','USABLE_DATE_BEFORE_HOLIDAY','large_area_name','ken_name','small_area_name']]
     
     # Reg_name: given a global datatime range, normalize the data
     D['REG_DATE'] = pd.to_datetime(D['REG_DATE'])
@@ -46,6 +44,12 @@ def processing_data(user_list_file, coupon_list_file, detail_file):
 
     # Define feature and label lists
     feature_list = D.keys()[0:4].tolist()
+    coupon_feature_list = ['CAPSULE_TEXT','GENRE_NAME','DISPPERIOD','VALIDPERIOD','USABLE_DATE_MON','USABLE_DATE_TUE','USABLE_DATE_WED','USABLE_DATE_THU','USABLE_DATE_FRI','USABLE_DATE_SAT','USABLE_DATE_SUN','USABLE_DATE_HOLIDAY','USABLE_DATE_BEFORE_HOLIDAY','large_area_name','ken_name','small_area_name']
+    to_map_feature_list = ['CAPSULE_TEXT','GENRE_NAME','large_area_name','ken_name','small_area_name']
+    
+    for to_map_feature in to_map_feature_list:
+        cur_map = {name: i for i, name in enumerate(D[to_map_feature].unique())}
+        D[to_map_feature] = D[to_map_feature].map(pref_map)
 
     # Value
     D['Reward'] = D['ITEM_COUNT'] #* D['DISCOUNT_PRICE']
@@ -57,8 +61,10 @@ def processing_data(user_list_file, coupon_list_file, detail_file):
 
     label_list = ['Reward', 'Cost'] 
 
+    D = D.fillna(-0.0) ## fill all Nan's with 0.0 
+
     # Standardize features and labels
-    for l in feature_list: 
+    for l in feature_list + coupon_feature_list: 
         D[l] = pd.to_numeric(D[l], errors='coerce') 
         D[l] = (D[l] - D[l].mean()) / D[l].std() 
         D[l][pd.isnull(D[l])] = 0.0 
@@ -83,6 +89,8 @@ def processing_data(user_list_file, coupon_list_file, detail_file):
     len_va = len(D) // 5 
 
     nX = D[feature_list].to_numpy()
+    nXc = D[coupon_feature_list].to_numpy()
+
     w = D[cohort_column_name].apply(lambda x: 1.0 if x == treatment_indicator_value else 0.0).to_numpy()
     values = D[label_list[0]].to_numpy()
     negcost = D[label_list[1]].to_numpy()
@@ -91,6 +99,10 @@ def processing_data(user_list_file, coupon_list_file, detail_file):
     nX_tr = nX[:len_tr, :] # user features
     nX_va = nX[len_tr:len_tr + len_va, :] 
     nX_te = nX[len_tr + len_va:, :] 
+
+    nXc_tr = nXc[:len_tr, :]
+    nXc_va = nXc[len_tr:len_tr + len_va, :]
+    nXc_te = nXc[len_tr + len_va:, :]
 
     w_tr = w[:len_tr]
     w_va = w[len_tr:len_tr + len_va] 
@@ -107,6 +119,29 @@ def processing_data(user_list_file, coupon_list_file, detail_file):
     i_tr = intensity_col[:len_tr]
     i_va = intensity_col[len_tr:len_tr + len_va]
     i_te = intensity_col[len_tr + len_va:]
+    
+    # # Save everything in a pickle file
+    # with open('ponpare_data.pkl', 'wb') as f:
+    #     pkl.dump({
+    #         'nX_tr': nX_tr,
+    #         'nX_va': nX_va,
+    #         'nX_te': nX_te,
+    #         'nXc_tr': nXc_tr,
+    #         'nXc_va': nXc_va,
+    #         'nXc_te': nXc_te,
+    #         'w_tr': w_tr,
+    #         'w_va': w_va,
+    #         'w_te': w_te,
+    #         'values_tr': values_tr,
+    #         'values_va': values_va,
+    #         'values_te': values_te,
+    #         'negcost_tr': negcost_tr,
+    #         'negcost_va': negcost_va,
+    #         'negcost_te': negcost_te,
+    #         'i_tr': i_tr,
+    #         'i_va': i_va,
+    #         'i_te': i_te
+    #     }, f)
 
     # Return the matrices
-    return nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, negcost_tr, negcost_va, negcost_te, i_tr, i_va, i_te
+    return nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, negcost_tr, negcost_va, negcost_te, i_tr, i_va, i_te, nXc_tr, nXc_va, nXc_te
