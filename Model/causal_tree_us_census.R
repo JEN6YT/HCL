@@ -9,7 +9,7 @@ p_sample_fraction = 0.5 #0.8
 num_features = 46 
 
 print('reading data from csv') 
-dread <- read.csv(file='/Users/jenniferzhang/Desktop/Research with Will/us_census_tr.csv')
+dread <- read.csv(file='us_census_tr.csv')
 
 print('performing data transformations') 
 features <- select(dread, `V1`, `V2`, `V3`, `V4`, `V5`, `V6`, `V7`, `V8`, `V9`, `V10`, `V11`, `V12`, `V13`, `V14`, `V15`, `V16`, `V17`, `V18`, `V19`, `V20`, `V21`, `V22`, `V23`, `V24`, `V25`, `V26`, `V27`, `V28`, `V29`, `V30`, `V31`, `V32`, `V33`, `V34`, `V35`, `V36`, `V37`, `V38`, `V39`, `V40`, `V41`, `V42`, `V43`, `V44`, `V45`, `V46`)
@@ -33,7 +33,7 @@ tauC.forest <- causal_forest(X, C, W, num.trees=num_trees, alpha=p_alpha, min.no
 #tauC.forest$tuning.output 
 
 print('reading test data from csv, data transformations') 
-dread <- read.csv(file='/Users/jenniferzhang/Desktop/Research with Will/us_census_va.csv')
+dread <- read.csv(file='us_census_va.csv')
 
 features <- select(dread, `V1`, `V2`, `V3`, `V4`, `V5`, `V6`, `V7`, `V8`, `V9`, `V10`, `V11`, `V12`, `V13`, `V14`, `V15`, `V16`, `V17`, `V18`, `V19`, `V20`, `V21`, `V22`, `V23`, `V24`, `V25`, `V26`, `V27`, `V28`, `V29`, `V30`, `V31`, `V32`, `V33`, `V34`, `V35`, `V36`, `V37`, `V38`, `V39`, `V40`, `V41`, `V42`, `V43`, `V44`, `V45`, `V46`)
 w <- select(dread, `w_va`) 
@@ -47,13 +47,13 @@ tauO.hat <- predict(tauO.forest, Xtest)
 tauC.hat <- predict(tauC.forest, Xtest) 
 
 print('predicting and writing to csv, value') 
-dir.create("/Users/jenniferzhang/Desktop/Research with Will/HCL/results_uscensus", recursive = TRUE)
+dir.create("/results_uscensus", recursive = TRUE)
 
 tdfO <- as.data.frame(t(tauO.hat)) 
-write.csv(tdfO, file = paste('/Users/jenniferzhang/Desktop/Research with Will/HCL/results_uscensus/causal_forest_grf_test_set_results_O', '_numtrees', toString(num_trees), '_alpha', toString(p_alpha), '_min_node_size', toString(p_min_node_size), '_sample_fraction', toString(p_sample_fraction),'.csv', sep='')) 
+write.csv(tdfO, file = paste('results_uscensus/causal_forest_grf_test_set_results_O', '_numtrees', toString(num_trees), '_alpha', toString(p_alpha), '_min_node_size', toString(p_min_node_size), '_sample_fraction', toString(p_sample_fraction),'.csv', sep='')) 
 
 print('predicting and writing to csv, cost') 
 tdfC <- as.data.frame(t(tauC.hat)) 
-write.csv(tdfC, file = paste('/Users/jenniferzhang/Desktop/Research with Will/HCL/results_uscensus/causal_forest_grf_test_set_results_C', '_numtrees', toString(num_trees), '_alpha', toString(p_alpha), '_min_node_size', toString(p_min_node_size), '_sample_fraction', toString(p_sample_fraction),'.csv', sep='')) 
+write.csv(tdfC, file = paste('results_uscensus/causal_forest_grf_test_set_results_C', '_numtrees', toString(num_trees), '_alpha', toString(p_alpha), '_min_node_size', toString(p_min_node_size), '_sample_fraction', toString(p_sample_fraction),'.csv', sep='')) 
 
 

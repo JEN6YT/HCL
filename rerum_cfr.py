@@ -21,7 +21,7 @@ from config import Config
 from data_preprocessing import Histrom_Binary_Men, Histrom_Binary_Wom, data_to_device
 #from evaluate import evaluate
 #from lr_model import LogisticRegressionNet
-from model_cfr import CfrNet
+from Model.model_cfr import CfrNet
 from utils import results_to_df, auuc_metric, auqc_metric, kendall_metric, lift_h_metric
 from tqdm import tqdm
 

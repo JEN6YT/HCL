@@ -2,12 +2,10 @@
 
 ## Requirement
 
-Required Python environment has been created in hcl_venv folder.
-
-To activate environment: 
+To install packages: 
 
 ```bash
-source ./hcl_venv/bin/activate
+pip install -r requirements.txt
 ```
 
 ## Usage
@@ -16,13 +14,13 @@ To run the script in the Python environment:
 
 For us_census data:
 ```bash
-python run_script.py --data us_census
+python run_kdd_experiment_us_census.py
 ```
 For covertype data:
 ```bash
-python run_script.py --data covtype
+python run_kdd_experiment_covtype.py
 ```
-
-
-
-
+For ponpare data:
+```bash
+python run_kdd_experiment_ponpare.py
+```

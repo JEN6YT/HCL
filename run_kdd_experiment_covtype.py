@@ -13,7 +13,7 @@ D_aucc = dict()
 # w: T (whether user is treated or not)
 # values: dIncome1 (reward)
 # cost: iFertil (positive cost) 
-data_path = "/Users/jenniferzhang/Desktop/Research with Will/HCL project/covtype.csv" 
+data_path = "covtype.csv" 
 nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te, i_tr, i_va, i_te = process_data(data_path) 
 INPUT_DIM = 51
 HIDDEN_DIM = 100

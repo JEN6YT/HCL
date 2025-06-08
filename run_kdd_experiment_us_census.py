@@ -13,7 +13,7 @@ D_aucc = dict()
 # w: T (whether user is treated or not)
 # values: dIncome1 (reward)
 # cost: iFertil (positive cost)
-data_path = '/Users/jenniferzhang/Desktop/Research with Will/HCL project/USCensus1990.data.txt'
+data_path = '/USCensus1990.data.txt'
 nX_tr, nX_va, nX_te, w_tr, w_va, w_te, values_tr, values_va, values_te, cost_tr, cost_va, cost_te,  i_tr, i_va, i_te = preprocess_data(data_path) 
 
 # ----- rlearner ----- # 

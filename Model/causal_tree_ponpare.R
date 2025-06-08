@@ -10,7 +10,7 @@ num_features = 4
 mtry = 2
 
 print('reading data from csv') 
-dread <- read.csv(file='/Users/jenniferzhang/Desktop/Research with Will/HCL project/ponpare_tr.csv')
+dread <- read.csv(file='ponpare_tr.csv')
 
 print('performing data transformations') 
 features <- select(dread, 'V1', 'V2', 'V3', 'V4')
@@ -34,7 +34,7 @@ tauC.forest <- causal_forest(X, C, W, num.trees=num_trees, alpha=p_alpha, min.no
 #tauC.forest$tuning.output 
 
 print('reading test data from csv, data transformations') 
-dread <- read.csv(file='/Users/jenniferzhang/Desktop/Research with Will/HCL project/ponpare_va.csv')
+dread <- read.csv(file='ponpare_va.csv')
 
 features <- select(dread, 'V1', 'V2', 'V3', 'V4') 
 w <- select(dread, 'w_va') 
@@ -50,10 +50,10 @@ tauC.hat <- predict(tauC.forest, Xtest)
 print('predicting and writing to csv, value')
 
 tdfO <- as.data.frame(t(tauO.hat)) 
-write.csv(tdfO, file = paste('/Users/jenniferzhang/Desktop/Research with Will/HCL project/HCL/results_ponpare/causal_forest_grf_test_set_results_O', '_numtrees', toString(num_trees), '_alpha', toString(p_alpha), '_min_node_size', toString(p_min_node_size), '_sample_fraction', toString(p_sample_fraction),'.csv', sep='')) 
+write.csv(tdfO, file = paste('results_ponpare/causal_forest_grf_test_set_results_O', '_numtrees', toString(num_trees), '_alpha', toString(p_alpha), '_min_node_size', toString(p_min_node_size), '_sample_fraction', toString(p_sample_fraction),'.csv', sep='')) 
 
 print('predicting and writing to csv, cost') 
 tdfC <- as.data.frame(t(tauC.hat)) 
-write.csv(tdfC, file = paste('/Users/jenniferzhang/Desktop/Research with Will/HCL project/HCL/results_ponpare/causal_forest_grf_test_set_results_C', '_numtrees', toString(num_trees), '_alpha', toString(p_alpha), '_min_node_size', toString(p_min_node_size), '_sample_fraction', toString(p_sample_fraction),'.csv', sep='')) 
+write.csv(tdfC, file = paste('results_ponpare/causal_forest_grf_test_set_results_C', '_numtrees', toString(num_trees), '_alpha', toString(p_alpha), '_min_node_size', toString(p_min_node_size), '_sample_fraction', toString(p_sample_fraction),'.csv', sep='')) 
 
 
