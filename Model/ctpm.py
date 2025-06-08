@@ -139,6 +139,7 @@ class CTPM(nn.Module):
         # Objective
         # obj = order_diff / (cost_diff + 1e-9) + d2dlamb * dist_diff
         obj = order_diff / (cost_diff + 1e-9)
+        # obj = soft_abs(order_diff) / (soft_abs(cost_diff) + 1e-10)
 
         return obj, dc_tre - dc_unt, do_tre - do_unt, h_tre_rnkscore, h_unt_rnkscore
     
@@ -171,6 +172,5 @@ def optimize_ctpm_model(model, D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, i_tre, 
 
         print(f"Epoch {epoch}/{epoch}, Objective: {obj.item()}, tau_C: {a.item()}, tau_O: {b.item()}")
     return obj
-
 
 # we use policy network to compute bell shape which later is used to compute p on top of the match network that produces p

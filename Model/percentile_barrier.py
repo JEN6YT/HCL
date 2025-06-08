@@ -83,7 +83,8 @@ def compute_objective_pb(D_tre, D_unt, c_tre, c_unt, o_tre, o_unt, model):
     
     # Compute the objective
     #obj = F.relu(dc_tre - dc_unt) / (F.relu(do_tre - do_unt) + 1e-7)  # Adding a small epsilon to avoid division by zero
-    obj = (do_tre - do_unt) / ((dc_tre - dc_unt) + 1e-10)
+    obj = soft_abs(do_tre - do_unt) / (soft_abs(dc_tre - dc_unt) + 1e-10)
+    # obj = (do_tre - do_unt) / (dc_tre - dc_unt + 1e-9) 
     return obj, dc_tre - dc_unt, do_tre - do_unt
 
 
