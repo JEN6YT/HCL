@@ -1,4 +1,4 @@
-# Getting Started
+This is the code for the paper: [Heterogeneous Causal Learning for Optimizing Aggregated Functions in User Growth](https://arxiv.org/pdf/2507.05510).
 
 ## Requirement
 
